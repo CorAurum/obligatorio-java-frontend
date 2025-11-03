@@ -22,6 +22,7 @@ export async function GET() {
         response_type: 'code',
         scope: scope,
         state: state,
+        prompt: 'login', // Force re-authentication for development
     });
 
     const authUrl = `${authorizeUrl}?${params.toString()}`;

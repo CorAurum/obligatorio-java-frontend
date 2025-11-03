@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
 
         await session.save();
 
-        // Redirect to callback page
-        return NextResponse.redirect(new URL('/callback', request.url));
+        // Redirect to usuario-salud page
+        return NextResponse.redirect(new URL('/usuario-salud', request.url));
     } catch (error) {
         console.error('Callback error:', error);
         return NextResponse.redirect(new URL('/?error=callback_failed', request.url));
