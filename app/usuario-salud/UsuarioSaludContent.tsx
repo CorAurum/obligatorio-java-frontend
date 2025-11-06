@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,23 +18,9 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  Loader2,
 } from "lucide-react"
-
-interface DocumentoClinico {
-  id: string
-  tipo: string
-  fecha: string
-  profesional: string
-  clinica: string
-  estado: "disponible" | "restringido"
-}
-
-interface PoliticaAcceso {
-  id: string
-  tipo: "especialidad" | "clinica"
-  nombre: string
-  estado: "activa" | "revocada"
-}
+import { backendAPI, DocumentoClinicoDTO, PoliticaDeAccesoDTO } from '@/lib/api/backend';
 
 interface AccesoHistoria {
   id: string
@@ -45,39 +31,69 @@ interface AccesoHistoria {
 }
 
 export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
-  const [documentos] = useState<DocumentoClinico[]>([
-    {
-      id: "1",
-      tipo: "Consulta Médica",
-      fecha: "2024-01-15",
-      profesional: "Dr. Juan Pérez",
-      clinica: "Hospital Maciel",
-      estado: "disponible",
-    },
-    {
-      id: "2",
-      tipo: "Análisis de Sangre",
-      fecha: "2024-01-10",
-      profesional: "Lab. María González",
-      clinica: "Laboratorio Central",
-      estado: "disponible",
-    },
-    {
-      id: "3",
-      tipo: "Radiografía",
-      fecha: "2024-01-08",
-      profesional: "Dr. Ana Rodríguez",
-      clinica: "Centro de Diagnóstico",
-      estado: "restringido",
-    },
-  ])
+  const [documentos, setDocumentos] = useState<DocumentoClinicoDTO[]>([]);
+  const [politicas, setPoliticas] = useState<PoliticaDeAccesoDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [revocando, setRevocando] = useState<string | null>(null);
 
-  const [politicas] = useState<PoliticaAcceso[]>([
-    { id: "1", tipo: "especialidad", nombre: "Cardiología", estado: "activa" },
-    { id: "2", tipo: "especialidad", nombre: "Medicina General", estado: "activa" },
-    { id: "3", tipo: "clinica", nombre: "Hospital Maciel", estado: "activa" },
-    { id: "4", tipo: "clinica", nombre: "Clínica Médica", estado: "activa" },
-  ])
+  // Get user ID from gub.uy token
+  const usuarioId = userInfo?.sub || userInfo?.document?.number;
+
+  // Handle revocar política
+  const handleRevocarPolitica = async (politicaId: string) => {
+    if (!confirm('¿Está seguro de que desea revocar esta política de acceso?')) {
+      return;
+    }
+
+    try {
+      setRevocando(politicaId);
+      await backendAPI.revocarPolitica(politicaId);
+
+      // Update local state
+      setPoliticas(prev =>
+        prev.map(p => p.id === politicaId ? { ...p, estado: 'REVOCADA' as const } : p)
+      );
+
+      alert('Política revocada exitosamente');
+    } catch (err) {
+      console.error('Error revoking politica:', err);
+      alert('Error al revocar la política');
+    } finally {
+      setRevocando(null);
+    }
+  };
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!usuarioId) {
+        setError('No se pudo obtener el ID de usuario');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        // Fetch documentos clínicos and políticas in parallel
+        const [documentosData, politicasData] = await Promise.all([
+          backendAPI.getDocumentosClinicos(usuarioId),
+          backendAPI.getPoliticasAcceso(usuarioId),
+        ]);
+
+        setDocumentos(documentosData);
+        setPoliticas(politicasData);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Error al cargar los datos del servidor');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [usuarioId]);
 
   const [accesos] = useState<AccesoHistoria[]>([
     {
@@ -105,8 +121,42 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
 
   const estadisticas = {
     documentos: documentos.length,
-    politicas: politicas.filter(p => p.estado === "activa").length,
+    politicas: politicas.filter(p => p.estado === "ACTIVA").length,
     accesos: accesos.length,
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Cargando información...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              <span>Error</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()} className="w-full">
+              Reintentar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -206,49 +256,69 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                 <CardDescription>Visualiza y gestiona tus documentos médicos</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {documentos.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">{doc.tipo}</h4>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <span className="flex items-center">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              {doc.fecha}
-                            </span>
-                            <span className="flex items-center">
-                              <User className="w-3 h-3 mr-1" />
-                              {doc.profesional}
-                            </span>
-                            <span className="flex items-center">
-                              <Hospital className="w-3 h-3 mr-1" />
-                              {doc.clinica}
-                            </span>
+                {documentos.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No hay documentos clínicos registrados</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {documentos.map((doc, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">{doc.area || 'Documento Clínico'}</h4>
+                            <p className="text-sm text-gray-600 mb-1">{doc.descripcion}</p>
+                            <div className="flex items-center space-x-4 text-sm text-gray-600">
+                              <span className="flex items-center">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                {new Date(doc.fechaCreacion).toLocaleDateString('es-UY')}
+                              </span>
+                              <span className="flex items-center">
+                                <User className="w-3 h-3 mr-1" />
+                                {doc.profesionalNombre} {doc.profesionalApellido}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="default" className="text-xs">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Disponible
+                          </Badge>
+                          {doc.urlAlojamiento && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(doc.urlAlojamiento, '_blank')}
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                Ver
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = doc.urlAlojamiento;
+                                  link.download = `documento-${doc.area}.pdf`;
+                                  link.click();
+                                }}
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Descargar
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={doc.estado === "disponible" ? "default" : "secondary"} className="text-xs">
-                          {doc.estado === "disponible" && <CheckCircle className="w-3 h-3 mr-1" />}
-                          {doc.estado === "restringido" && <AlertCircle className="w-3 h-3 mr-1" />}
-                          {doc.estado}
-                        </Badge>
-                        <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4 mr-2" />
-                          Ver
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Download className="w-4 h-4 mr-2" />
-                          Descargar
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -264,49 +334,74 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                 <CardDescription>Controla quién puede acceder a tu información médica</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">Acceso por Especialidad</h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Permite el acceso automático a profesionales de ciertas especialidades
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {politicas
-                        .filter(p => p.tipo === "especialidad" && p.estado === "activa")
-                        .map(p => (
-                          <div key={p.id} className="flex items-center gap-2">
-                            <Badge variant="outline">{p.nombre}</Badge>
-                            <button className="text-xs text-red-600 hover:text-red-700">✕</button>
-                          </div>
-                        ))}
-                      <Button variant="outline" size="sm">
-                        + Agregar Especialidad
-                      </Button>
-                    </div>
+                {politicas.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Shield className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No hay políticas de acceso configuradas</p>
                   </div>
-
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">Clínicas Autorizadas</h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Clínicas con acceso completo a tu historia clínica
-                    </p>
-                    <div className="space-y-2">
-                      {politicas
-                        .filter(p => p.tipo === "clinica" && p.estado === "activa")
-                        .map(p => (
-                          <div key={p.id} className="flex items-center justify-between p-2 border rounded">
-                            <span className="text-sm font-medium">{p.nombre}</span>
-                            <Button variant="outline" size="sm">
-                              Revocar
+                ) : (
+                  <div className="space-y-4">
+                    {politicas.map((politica) => (
+                      <div key={politica.id} className="p-4 border rounded-lg">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h4 className="font-medium text-gray-900">{politica.centroNombre}</h4>
+                              <Badge
+                                variant={politica.estado === 'ACTIVA' ? 'default' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {politica.estado}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+                              <span className="flex items-center">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                Creada: {new Date(politica.fechaCreacion).toLocaleDateString('es-UY')}
+                              </span>
+                              {politica.vigenciaHasta && (
+                                <span className="flex items-center">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Vigencia: {new Date(politica.vigenciaHasta).toLocaleDateString('es-UY')}
+                                </span>
+                              )}
+                            </div>
+                            {politica.especialidades.length > 0 && (
+                              <div>
+                                <p className="text-xs text-gray-500 mb-2">Especialidades autorizadas:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {politica.especialidades.map((esp) => (
+                                    <Badge key={esp.id} variant="outline" className="text-xs">
+                                      {esp.nombre}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {politica.estado === 'ACTIVA' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-4 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleRevocarPolitica(politica.id)}
+                              disabled={revocando === politica.id}
+                            >
+                              {revocando === politica.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Revocando...
+                                </>
+                              ) : (
+                                'Revocar'
+                              )}
                             </Button>
-                          </div>
-                        ))}
-                      <Button variant="outline" size="sm" className="w-full">
-                        + Autorizar Nueva Clínica
-                      </Button>
-                    </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
