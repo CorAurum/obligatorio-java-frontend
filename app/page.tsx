@@ -52,7 +52,7 @@ export default function HCENDashboard() {
         "Monitoreo del sistema",
       ],
       userType: "Administrador HCEN",
-      route: "/admin-hcen",
+      route: "/api/auth/login?portal=admin",
     },
     {
       id: "usuarios-salud",
@@ -67,7 +67,7 @@ export default function HCENDashboard() {
         "Auditoría de accesos",
       ],
       userType: "Usuario de Salud",
-      route: "/api/auth/login",
+      route: "/api/auth/login?portal=usuario",
     },
     {
       id: "admin-clinica",

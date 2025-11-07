@@ -36,9 +36,11 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revocando, setRevocando] = useState<string | null>(null);
+  const [usuarioId, setUsuarioId] = useState<string | null>(null);
 
-  // Get user ID from gub.uy token
-  const usuarioId = userInfo?.sub || userInfo?.document?.number;
+  // Get cedula from gub.uy token
+  // numero_documento is the field name from gub.uy (IdUruguay)
+  const cedula = userInfo?.numero_documento || userInfo?.document?.number || userInfo?.sub;
 
   // Handle revocar política
   const handleRevocarPolitica = async (politicaId: string) => {
@@ -66,8 +68,8 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
 
   useEffect(() => {
     async function fetchData() {
-      if (!usuarioId) {
-        setError('No se pudo obtener el ID de usuario');
+      if (!cedula) {
+        setError('No se pudo obtener la cédula del token de gub.uy');
         setLoading(false);
         return;
       }
@@ -75,10 +77,18 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
       try {
         setLoading(true);
 
-        // Fetch documentos clínicos and políticas in parallel
+        // Debug: log the cedula value and userInfo
+        console.log('UserInfo completo:', userInfo);
+        console.log('Cedula extraída:', cedula);
+
+        // Step 1: Get Usuario ID from cedula
+        const resolvedUsuarioId = await backendAPI.getUsuarioIdByCedula(cedula);
+        setUsuarioId(resolvedUsuarioId);
+
+        // Step 2: Fetch documentos clínicos and políticas in parallel
         const [documentosData, politicasData] = await Promise.all([
-          backendAPI.getDocumentosClinicos(usuarioId),
-          backendAPI.getPoliticasAcceso(usuarioId),
+          backendAPI.getDocumentosClinicos(resolvedUsuarioId),
+          backendAPI.getPoliticasAcceso(resolvedUsuarioId),
         ]);
 
         setDocumentos(documentosData);
@@ -86,14 +96,18 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
         setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
-        setError('Error al cargar los datos del servidor');
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Error al cargar los datos del servidor');
+        }
       } finally {
         setLoading(false);
       }
     }
 
     fetchData();
-  }, [usuarioId]);
+  }, [cedula]);
 
   const [accesos] = useState<AccesoHistoria[]>([
     {
@@ -179,8 +193,13 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
                 <User className="w-3 h-3 mr-1" />
-                Gub.uy ID: {userInfo?.sub || userInfo?.email || 'Invitado'}
+                CI: {cedula || 'No disponible'}
               </Badge>
+              {usuarioId && (
+                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                  Usuario: {usuarioId}
+                </Badge>
+              )}
               <form action="/api/auth/logout" method="POST">
                 <button
                   type="submit"
