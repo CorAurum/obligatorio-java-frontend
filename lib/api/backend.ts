@@ -58,6 +58,25 @@ export interface Especialidad {
   descripcion?: string;
 }
 
+export interface Usuario {
+  id: string;
+  nombres?: string;
+  apellidos?: string;
+  fechaNacimiento?: string;
+}
+
+export interface ProfesionalDeSalud {
+  id: string;
+  numeroRegistro?: string;
+  nombres: string;
+  apellidos: string;
+  email?: string;
+  telefono?: string;
+  fechaRegistroProfesional?: string;
+  estado?: 'ACTIVO' | 'SUSPENDIDO';
+  centroDeSalud?: CentroDeSalud;
+}
+
 class BackendAPI {
   private baseURL: string;
 
@@ -273,6 +292,164 @@ class BackendAPI {
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Error creando centro de salud: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get all administradores
+   */
+  async getAdministradores(): Promise<Administrador[]> {
+    const response = await fetch(`${this.baseURL}/administradores`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching administradores: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Create a new administrador
+   */
+  async crearAdministrador(admin: Omit<Administrador, 'id' | 'fechaAlta'>): Promise<Administrador> {
+    const response = await fetch(`${this.baseURL}/administradores`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(admin),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error creando administrador: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Update an administrador
+   */
+  async actualizarAdministrador(id: number, admin: Partial<Administrador>): Promise<Administrador> {
+    const response = await fetch(`${this.baseURL}/administradores/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(admin),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error actualizando administrador: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Toggle administrador active status
+   */
+  async toggleAdministradorEstado(id: number, activo: boolean): Promise<Administrador> {
+    return this.actualizarAdministrador(id, { activo });
+  }
+
+  /**
+   * Delete an administrador
+   */
+  async eliminarAdministrador(id: number): Promise<void> {
+    const response = await fetch(`${this.baseURL}/administradores/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error eliminando administrador: ${error}`);
+    }
+  }
+
+  /**
+   * Get all usuarios
+   */
+  async getUsuarios(): Promise<Usuario[]> {
+    const response = await fetch(`${this.baseURL}/usuarios`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching usuarios: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get all profesionales de salud
+   */
+  async getProfesionales(): Promise<ProfesionalDeSalud[]> {
+    const response = await fetch(`${this.baseURL}/profesionales`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching profesionales: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Create a new profesional de salud
+   */
+  async crearProfesional(profesional: Omit<ProfesionalDeSalud, 'id' | 'fechaRegistroProfesional' | 'centroDeSalud'>, centroId: string, adminId: number): Promise<ProfesionalDeSalud> {
+    const response = await fetch(`${this.baseURL}/profesionales?centroId=${centroId}&adminId=${adminId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(profesional),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error creando profesional: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Update a profesional de salud
+   */
+  async actualizarProfesional(id: string, profesional: Partial<ProfesionalDeSalud>): Promise<ProfesionalDeSalud> {
+    const response = await fetch(`${this.baseURL}/profesionales/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(profesional),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error actualizando profesional: ${error}`);
     }
 
     return response.json();
