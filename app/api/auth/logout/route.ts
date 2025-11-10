@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
 
     // Get OIDC logout configuration
     const logoutUrl = process.env.OIDC_LOGOUT_URL;
-    const postLogoutRedirectUri = process.env.OIDC_POST_LOGOUT_REDIRECT_URI || `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080'}/logout`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const postLogoutRedirectUri = process.env.OIDC_POST_LOGOUT_REDIRECT_URI || baseUrl;
 
     // If OIDC logout is configured, perform proper OIDC logout
     if (logoutUrl && session.user?.id_token) {
@@ -41,5 +42,5 @@ export async function POST(request: NextRequest) {
 
     // Fallback: Clear session and redirect to home page
     session.destroy();
-    return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080'));
+    return NextResponse.redirect(new URL('/', baseUrl));
 }

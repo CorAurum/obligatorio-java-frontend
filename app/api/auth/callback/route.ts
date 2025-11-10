@@ -10,6 +10,7 @@ interface SessionData {
         expires_in: number;
     };
     isLoggedIn?: boolean;
+    intendedPortal?: 'admin' | 'usuario';
 }
 
 export async function GET(request: NextRequest) {
@@ -49,8 +50,17 @@ export async function GET(request: NextRequest) {
 
         await session.save();
 
-        // Redirect to callback page
-        return NextResponse.redirect(new URL('/callback', request.url));
+        // Get intended portal from session (set during login)
+        const intendedPortal = session.intendedPortal || 'usuario';
+
+        // Redirect based on intended portal
+        if (intendedPortal === 'admin') {
+            // For admin portal, redirect to auth-redirect to verify admin status
+            return NextResponse.redirect(new URL('/auth-redirect?portal=admin', request.url));
+        } else {
+            // For usuario portal, go directly to usuario-salud
+            return NextResponse.redirect(new URL('/usuario-salud', request.url));
+        }
     } catch (error) {
         console.error('Callback error:', error);
         return NextResponse.redirect(new URL('/?error=callback_failed', request.url));
