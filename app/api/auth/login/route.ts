@@ -10,7 +10,7 @@ interface SessionData {
         expires_in: number;
     };
     isLoggedIn?: boolean;
-    intendedPortal?: 'admin' | 'usuario';
+    intendedPortal?: 'admin' | 'usuario' | 'profesional';
 }
 
 export async function GET(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         cookieName: 'auth-session',
     });
 
-    session.intendedPortal = portal as 'admin' | 'usuario';
+    session.intendedPortal = portal as 'admin' | 'usuario' | 'profesional';
     await session.save();
 
     // Read OIDC configuration from environment variables

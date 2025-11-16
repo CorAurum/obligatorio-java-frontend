@@ -10,7 +10,7 @@ interface SessionData {
         expires_in: number;
     };
     isLoggedIn?: boolean;
-    intendedPortal?: 'admin' | 'usuario';
+    intendedPortal?: 'admin' | 'usuario' | 'profesional';
 }
 
 export async function GET(request: NextRequest) {
@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
         if (intendedPortal === 'admin') {
             // For admin portal, redirect to auth-redirect to verify admin status
             return NextResponse.redirect(new URL('/auth-redirect?portal=admin', request.url));
+        } else if (intendedPortal === 'profesional') {
+            // For professional portal, go directly to profesional page
+            return NextResponse.redirect(new URL('/profesional', request.url));
         } else {
             // For usuario portal, go directly to usuario-salud
             return NextResponse.redirect(new URL('/usuario-salud', request.url));

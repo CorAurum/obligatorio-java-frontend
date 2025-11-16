@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { backendAPI } from '@/lib/api/backend'
 
-export default function AuthRedirectPage() {
+function AuthRedirectContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const portal = searchParams.get('portal')
@@ -63,5 +63,20 @@ export default function AuthRedirectPage() {
         <p className="text-gray-600">Verificando permisos...</p>
       </div>
     </div>
+  )
+}
+
+export default function AuthRedirectPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <AuthRedirectContent />
+    </Suspense>
   )
 }
