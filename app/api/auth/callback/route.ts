@@ -9,87 +9,85 @@ interface SessionData {
         token_type: string;
         expires_in: number;
     };
+    userInfo?: OidcUserInfo;
     isLoggedIn?: boolean;
-    intendedPortal?: 'admin' | 'usuario';
+    intendedPortal?: 'admin' | 'usuario' | 'profesional';
+}
+
+interface AuthCallbackResponse {
+    redirectUrl: string;
+    portal: string;
+    userInfo: OidcUserInfo;
+    backendToken?: string;
+    error?: string;
+}
+
+interface OidcUserInfo {
+    subject: string;
+    numeroDocumento: string;
+    email: string;
+    name: string;
+    givenName?: string;
+    familyName?: string;
+    preferredUsername?: string;
+    issuedAt?: number;
+    expiresAt?: number;
+    issuer?: string;
+    audience?: string;
 }
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
+    const state = searchParams.get('state');
+    const portal = searchParams.get('portal') || 'usuario';
 
-    // Check if we received an authorization code
     if (!code) {
+        // Handle error - redirect to error page
         return NextResponse.redirect(new URL('/?error=no_code', request.url));
     }
 
     try {
-        // Exchange the authorization code for tokens
-        const tokenResponse = await exchangeCodeForTokens(code);
+        // Get backend URL
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/CompC-1.0-SNAPSHOT';
 
-        if (!tokenResponse.ok) {
-            console.error('Token exchange failed');
-            return NextResponse.redirect(new URL('/?error=token_exchange_failed', request.url));
+        // Call backend callback endpoint
+        const backendResponse = await fetch(`${backendUrl}/api/auth/callback/web?code=${code}&state=${state}&portal=${portal}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        const authData: AuthCallbackResponse = await backendResponse.json();
+
+        if (!backendResponse.ok || authData.error) {
+            // Handle authentication error
+            const errorMsg = authData.error || 'Authentication failed';
+            return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(errorMsg)}`, request.url));
         }
 
-        const tokens = await tokenResponse.json();
-
-        // Create session with iron-session
+        // Create session with backend token and user info
         const session = await getIronSession<SessionData>(await cookies(), {
-            password: process.env.SESSION_SECRET || 'a4b23d96f8d3e44f8f40d61c12b5a9d057e0dba5cf871e2fd41f6b033a1c8b67',
+            password: process.env.SESSION_SECRET!,
             cookieName: 'auth-session',
         });
 
-        // Store user info in session
         session.user = {
-            id_token: tokens.id_token,
-            access_token: tokens.access_token,
-            token_type: tokens.token_type,
-            expires_in: tokens.expires_in,
+            id_token: authData.backendToken || '', // Use backend token instead of gub.uy token
+            access_token: authData.backendToken || '',
+            token_type: 'Bearer',
+            expires_in: 86400, // 24 hours
         };
+        session.userInfo = authData.userInfo; // Store decoded user info
         session.isLoggedIn = true;
-
         await session.save();
 
-        // Get intended portal from session (set during login)
-        const intendedPortal = session.intendedPortal || 'usuario';
+        // Redirect to the URL provided by backend
+        return NextResponse.redirect(authData.redirectUrl);
 
-        // Redirect based on intended portal
-        if (intendedPortal === 'admin') {
-            // For admin portal, redirect to auth-redirect to verify admin status
-            return NextResponse.redirect(new URL('/auth-redirect?portal=admin', request.url));
-        } else {
-            // For usuario portal, go directly to usuario-salud
-            return NextResponse.redirect(new URL('/usuario-salud', request.url));
-        }
     } catch (error) {
         console.error('Callback error:', error);
         return NextResponse.redirect(new URL('/?error=callback_failed', request.url));
     }
-}
-
-async function exchangeCodeForTokens(code: string) {
-    const clientId = process.env.OIDC_CLIENT_ID!;
-    const clientSecret = process.env.OIDC_CLIENT_SECRET!;
-    const redirectUri = process.env.OIDC_REDIRECT_URI!;
-    const tokenUrl = process.env.OIDC_TOKEN_URL!;
-
-    // Create Basic Auth header
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-
-    // Prepare the token request body
-    const body = new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: redirectUri,
-    });
-
-    // Make the token exchange request
-    return fetch(tokenUrl, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Basic ${credentials}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: body.toString(),
-    });
 }

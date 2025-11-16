@@ -1,6 +1,6 @@
 // API client for backend communication
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/CompC-1.0-SNAPSHOT/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/CompC-1.0-SNAPSHOT';
 
 export interface DocumentoClinicoDTO {
   fechaCreacion: string;
@@ -89,7 +89,7 @@ class BackendAPI {
    * Returns the first Usuario ID found for the given cedula
    */
   async getUsuarioIdByCedula(cedula: string): Promise<string> {
-    const url = `${this.baseURL}/identificadores/usuario/ci/${cedula}`;
+    const url = `${this.baseURL}/api/identificadores/usuario/ci/${cedula}`;
     console.log('Llamando a URL:', url);
 
     const response = await fetch(url, {
@@ -122,7 +122,7 @@ class BackendAPI {
    * Get user's clinical documents
    */
   async getDocumentosClinicos(usuarioId: string): Promise<DocumentoClinicoDTO[]> {
-    const response = await fetch(`${this.baseURL}/documentoClinico/usuarioDTO/${usuarioId}`, {
+    const response = await fetch(`${this.baseURL}/api/documentoClinico/usuarioDTO/${usuarioId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -140,7 +140,7 @@ class BackendAPI {
    * Get user's access policies
    */
   async getPoliticasAcceso(usuarioId: string): Promise<PoliticaDeAccesoDTO[]> {
-    const response = await fetch(`${this.baseURL}/politicas/usuario/${usuarioId}`, {
+    const response = await fetch(`${this.baseURL}/api/politicas/usuario/${usuarioId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -158,7 +158,7 @@ class BackendAPI {
    * Create new access policy
    */
   async crearPolitica(request: CrearPoliticaRequest): Promise<PoliticaDeAccesoDTO> {
-    const response = await fetch(`${this.baseURL}/politicas`, {
+    const response = await fetch(`${this.baseURL}/api/politicas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -178,7 +178,7 @@ class BackendAPI {
    * Revoke an access policy
    */
   async revocarPolitica(politicaId: string): Promise<{ status: string }> {
-    const response = await fetch(`${this.baseURL}/politicas/${politicaId}/revocar`, {
+    const response = await fetch(`${this.baseURL}/api/politicas/${politicaId}/revocar`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -199,7 +199,7 @@ class BackendAPI {
    */
   async checkIsAdmin(cedula: string): Promise<Administrador | null> {
     try {
-      const response = await fetch(`${this.baseURL}/administradores/cedula/${cedula}`, {
+      const response = await fetch(`${this.baseURL}/api/administradores/cedula/${cedula}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -225,7 +225,7 @@ class BackendAPI {
    * Get all centros de salud
    */
   async getCentrosDeSalud(): Promise<CentroDeSalud[]> {
-    const response = await fetch(`${this.baseURL}/CentroDeSalud`, {
+    const response = await fetch(`${this.baseURL}/api/CentroDeSalud`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -243,7 +243,7 @@ class BackendAPI {
    * Get all especialidades
    */
   async getEspecialidades(): Promise<Especialidad[]> {
-    const response = await fetch(`${this.baseURL}/especialidades`, {
+    const response = await fetch(`${this.baseURL}/api/especialidades`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -261,7 +261,7 @@ class BackendAPI {
    * Create a new especialidad
    */
   async crearEspecialidad(nombre: string, descripcion?: string): Promise<Especialidad> {
-    const response = await fetch(`${this.baseURL}/especialidades`, {
+    const response = await fetch(`${this.baseURL}/api/especialidades`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -281,7 +281,7 @@ class BackendAPI {
    * Create a new centro de salud
    */
   async crearCentroDeSalud(centro: Partial<CentroDeSalud>, adminId: number): Promise<CentroDeSalud> {
-    const response = await fetch(`${this.baseURL}/CentroDeSalud?adminId=${adminId}`, {
+    const response = await fetch(`${this.baseURL}/api/CentroDeSalud?adminId=${adminId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -301,7 +301,7 @@ class BackendAPI {
    * Get all administradores
    */
   async getAdministradores(): Promise<Administrador[]> {
-    const response = await fetch(`${this.baseURL}/administradores`, {
+    const response = await fetch(`${this.baseURL}/api/administradores`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -319,7 +319,7 @@ class BackendAPI {
    * Create a new administrador
    */
   async crearAdministrador(admin: Omit<Administrador, 'id' | 'fechaAlta'>): Promise<Administrador> {
-    const response = await fetch(`${this.baseURL}/administradores`, {
+    const response = await fetch(`${this.baseURL}/api/administradores`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -339,7 +339,7 @@ class BackendAPI {
    * Update an administrador
    */
   async actualizarAdministrador(id: number, admin: Partial<Administrador>): Promise<Administrador> {
-    const response = await fetch(`${this.baseURL}/administradores/${id}`, {
+    const response = await fetch(`${this.baseURL}/api/administradores/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -366,7 +366,7 @@ class BackendAPI {
    * Delete an administrador
    */
   async eliminarAdministrador(id: number): Promise<void> {
-    const response = await fetch(`${this.baseURL}/administradores/${id}`, {
+    const response = await fetch(`${this.baseURL}/api/administradores/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -383,7 +383,7 @@ class BackendAPI {
    * Get all usuarios
    */
   async getUsuarios(): Promise<Usuario[]> {
-    const response = await fetch(`${this.baseURL}/usuarios`, {
+    const response = await fetch(`${this.baseURL}/api/usuarios`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -401,7 +401,7 @@ class BackendAPI {
    * Get all profesionales de salud
    */
   async getProfesionales(): Promise<ProfesionalDeSalud[]> {
-    const response = await fetch(`${this.baseURL}/profesionales`, {
+    const response = await fetch(`${this.baseURL}/api/profesionales`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -419,7 +419,7 @@ class BackendAPI {
    * Create a new profesional de salud
    */
   async crearProfesional(profesional: Omit<ProfesionalDeSalud, 'id' | 'fechaRegistroProfesional' | 'centroDeSalud'>, centroId: string, adminId: number): Promise<ProfesionalDeSalud> {
-    const response = await fetch(`${this.baseURL}/profesionales?centroId=${centroId}&adminId=${adminId}`, {
+    const response = await fetch(`${this.baseURL}/api/profesionales?centroId=${centroId}&adminId=${adminId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -439,7 +439,7 @@ class BackendAPI {
    * Update a profesional de salud
    */
   async actualizarProfesional(id: string, profesional: Partial<ProfesionalDeSalud>): Promise<ProfesionalDeSalud> {
-    const response = await fetch(`${this.baseURL}/profesionales/${id}`, {
+    const response = await fetch(`${this.baseURL}/api/profesionales/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import {
   Settings,
 } from "lucide-react"
 
-export default function HCENDashboard() {
+function DashboardContent() {
   const [selectedPortal, setSelectedPortal] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -22,9 +22,11 @@ export default function HCENDashboard() {
   // If we have code and state parameters from gub.uy, redirect to callback
   useEffect(() => {
     if (code && state) {
-      router.replace(`/api/auth/callback?code=${code}&state=${state}`)
+      // Get portal parameter if available
+      const portal = searchParams.get('portal') || 'usuario';
+      router.replace(`/api/auth/callback?code=${code}&state=${state}&portal=${portal}`)
     }
-  }, [code, state, router])
+  }, [code, state, router, searchParams])
 
   // Show loading while redirecting
   if (code && state) {
@@ -97,7 +99,7 @@ export default function HCENDashboard() {
         "Consulta de información externa",
       ],
       userType: "Profesional de Salud",
-      route: "/profesionales-salud",
+      route: "/api/auth/login?portal=profesional",
     },
   ]
 
@@ -133,9 +135,8 @@ export default function HCENDashboard() {
             {portals.map((portal) => (
               <Card
                 key={portal.id}
-                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                  selectedPortal === portal.id ? "ring-2 ring-blue-600" : ""
-                }`}
+                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${selectedPortal === portal.id ? "ring-2 ring-blue-600" : ""
+                  }`}
                 onClick={() => setSelectedPortal(selectedPortal === portal.id ? null : portal.id)}
               >
                 <CardHeader>
@@ -184,5 +185,20 @@ export default function HCENDashboard() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function HCENDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   )
 }
