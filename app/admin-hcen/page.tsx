@@ -25,13 +25,18 @@ import {
   FileText,
   Shield,
   Plus,
+  Edit,
+  Power,
 } from "lucide-react"
-import { backendAPI, type CentroDeSalud, type Especialidad } from "@/lib/api/backend"
+import { backendAPI, type CentroDeSalud, type Especialidad, type Administrador, type Usuario, type ProfesionalDeSalud } from "@/lib/api/backend"
 
 export default function AdminHCENPortal() {
   const [selectedTab, setSelectedTab] = useState("clinicas")
   const [clinicas, setClinicas] = useState<CentroDeSalud[]>([])
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([])
+  const [administradores, setAdministradores] = useState<Administrador[]>([])
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
+  const [profesionales, setProfesionales] = useState<ProfesionalDeSalud[]>([])
   const [loading, setLoading] = useState(true)
   const [userInfo, setUserInfo] = useState<any>(null)
 
@@ -39,6 +44,19 @@ export default function AdminHCENPortal() {
   const [showEspecialidadDialog, setShowEspecialidadDialog] = useState(false)
   const [creatingEspecialidad, setCreatingEspecialidad] = useState(false)
   const [nuevaEspecialidad, setNuevaEspecialidad] = useState({ nombre: "", descripcion: "" })
+
+  // Dialog state for creating/editing admin
+  const [showAdminDialog, setShowAdminDialog] = useState(false)
+  const [editingAdmin, setEditingAdmin] = useState<Administrador | null>(null)
+  const [savingAdmin, setSavingAdmin] = useState(false)
+  const [adminForm, setAdminForm] = useState({
+    nombre: "",
+    apellido: "",
+    email: "",
+    telefono: "",
+    cedula: "",
+    activo: true,
+  })
 
   useEffect(() => {
     async function loadData() {
@@ -50,14 +68,20 @@ export default function AdminHCENPortal() {
           setUserInfo(user)
         }
 
-        // Load clinicas and especialidades
-        const [clinicasData, especialidadesData] = await Promise.all([
+        // Load all data
+        const [clinicasData, especialidadesData, administradoresData, usuariosData, profesionalesData] = await Promise.all([
           backendAPI.getCentrosDeSalud(),
-          backendAPI.getEspecialidades()
+          backendAPI.getEspecialidades(),
+          backendAPI.getAdministradores(),
+          backendAPI.getUsuarios(),
+          backendAPI.getProfesionales()
         ])
 
         setClinicas(clinicasData)
         setEspecialidades(especialidadesData)
+        setAdministradores(administradoresData)
+        setUsuarios(usuariosData)
+        setProfesionales(profesionalesData)
       } catch (error) {
         console.error('Error loading data:', error)
       } finally {
@@ -88,6 +112,67 @@ export default function AdminHCENPortal() {
       alert('Error al crear la especialidad')
     } finally {
       setCreatingEspecialidad(false)
+    }
+  }
+
+  const handleOpenAdminDialog = (admin?: Administrador) => {
+    if (admin) {
+      setEditingAdmin(admin)
+      setAdminForm({
+        nombre: admin.nombre,
+        apellido: admin.apellido,
+        email: admin.email,
+        telefono: admin.telefono,
+        cedula: admin.cedula,
+        activo: admin.activo,
+      })
+    } else {
+      setEditingAdmin(null)
+      setAdminForm({
+        nombre: "",
+        apellido: "",
+        email: "",
+        telefono: "",
+        cedula: "",
+        activo: true,
+      })
+    }
+    setShowAdminDialog(true)
+  }
+
+  const handleSaveAdmin = async () => {
+    if (!adminForm.nombre.trim() || !adminForm.apellido.trim() || !adminForm.email.trim() || !adminForm.cedula.trim()) {
+      alert('Por favor complete todos los campos obligatorios')
+      return
+    }
+
+    setSavingAdmin(true)
+    try {
+      if (editingAdmin) {
+        // Update existing admin
+        const updatedAdmin = await backendAPI.actualizarAdministrador(editingAdmin.id, adminForm)
+        setAdministradores(administradores.map(a => a.id === editingAdmin.id ? updatedAdmin : a))
+      } else {
+        // Create new admin
+        const nuevoAdmin = await backendAPI.crearAdministrador(adminForm)
+        setAdministradores([...administradores, nuevoAdmin])
+      }
+      setShowAdminDialog(false)
+    } catch (error) {
+      console.error('Error saving admin:', error)
+      alert(editingAdmin ? 'Error al actualizar el administrador' : 'Error al crear el administrador')
+    } finally {
+      setSavingAdmin(false)
+    }
+  }
+
+  const handleToggleAdminStatus = async (admin: Administrador) => {
+    try {
+      const updatedAdmin = await backendAPI.toggleAdministradorEstado(admin.id, !admin.activo)
+      setAdministradores(administradores.map(a => a.id === admin.id ? updatedAdmin : a))
+    } catch (error) {
+      console.error('Error toggling admin status:', error)
+      alert('Error al cambiar el estado del administrador')
     }
   }
 
@@ -146,9 +231,12 @@ export default function AdminHCENPortal() {
 
       <div className="container mx-auto px-6 py-8">
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="clinicas">Clínicas</TabsTrigger>
             <TabsTrigger value="especialidades">Especialidades</TabsTrigger>
+            <TabsTrigger value="administradores">Administradores</TabsTrigger>
+            <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
+            <TabsTrigger value="profesionales">Profesionales</TabsTrigger>
             <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
           </TabsList>
 
@@ -291,6 +379,262 @@ export default function AdminHCENPortal() {
             </div>
           </TabsContent>
 
+          {/* Administradores Tab */}
+          <TabsContent value="administradores" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">Gestión de Administradores</h2>
+                <p className="text-muted-foreground">Administrar usuarios con permisos de administrador</p>
+              </div>
+              <Dialog open={showAdminDialog} onOpenChange={setShowAdminDialog}>
+                <DialogTrigger asChild>
+                  <Button size="lg" onClick={() => handleOpenAdminDialog()}>
+                    <Plus className="w-5 h-5 mr-2" />
+                    Nuevo Administrador
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingAdmin ? 'Editar Administrador' : 'Crear Nuevo Administrador'}</DialogTitle>
+                    <DialogDescription>
+                      {editingAdmin ? 'Modifica los datos del administrador' : 'Agrega un nuevo administrador al sistema'}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nombre">Nombre *</Label>
+                        <Input
+                          id="nombre"
+                          placeholder="Juan"
+                          value={adminForm.nombre}
+                          onChange={(e) => setAdminForm({ ...adminForm, nombre: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="apellido">Apellido *</Label>
+                        <Input
+                          id="apellido"
+                          placeholder="Pérez"
+                          value={adminForm.apellido}
+                          onChange={(e) => setAdminForm({ ...adminForm, apellido: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cedula">Cédula *</Label>
+                      <Input
+                        id="cedula"
+                        placeholder="12345678"
+                        value={adminForm.cedula}
+                        onChange={(e) => setAdminForm({ ...adminForm, cedula: e.target.value })}
+                        disabled={!!editingAdmin}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="admin@hcen.uy"
+                        value={adminForm.email}
+                        onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="telefono">Teléfono</Label>
+                      <Input
+                        id="telefono"
+                        placeholder="+598 99 123 456"
+                        value={adminForm.telefono}
+                        onChange={(e) => setAdminForm({ ...adminForm, telefono: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAdminDialog(false)}
+                      disabled={savingAdmin}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleSaveAdmin}
+                      disabled={savingAdmin}
+                    >
+                      {savingAdmin ? "Guardando..." : (editingAdmin ? "Actualizar" : "Crear")}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {administradores.length === 0 ? (
+                <Card className="col-span-full">
+                  <CardContent className="p-12 text-center">
+                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No hay administradores registrados</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                administradores.map((admin) => (
+                  <Card key={admin.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Users className="w-5 h-5" />
+                            <span>{admin.nombre} {admin.apellido}</span>
+                          </CardTitle>
+                          <CardDescription className="mt-1">CI: {admin.cedula}</CardDescription>
+                        </div>
+                        <Badge className={admin.activo ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>
+                          {admin.activo ? 'Activo' : 'Inactivo'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-muted-foreground">
+                          <strong>Email:</strong> {admin.email}
+                        </p>
+                        {admin.telefono && (
+                          <p className="text-muted-foreground">
+                            <strong>Teléfono:</strong> {admin.telefono}
+                          </p>
+                        )}
+                        <div className="flex gap-2 pt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenAdminDialog(admin)}
+                            className="flex-1"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={admin.activo ? "outline" : "default"}
+                            onClick={() => handleToggleAdminStatus(admin)}
+                            className="flex-1"
+                          >
+                            <Power className="w-4 h-4 mr-1" />
+                            {admin.activo ? 'Desactivar' : 'Activar'}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Usuarios Tab */}
+          <TabsContent value="usuarios" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Usuarios de Salud</h2>
+              <p className="text-muted-foreground">Visualización de usuarios registrados en el sistema</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {usuarios.length === 0 ? (
+                <Card className="col-span-full">
+                  <CardContent className="p-12 text-center">
+                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No hay usuarios registrados</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                usuarios.map((usuario) => (
+                  <Card key={usuario.id}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Users className="w-5 h-5" />
+                        <span>{usuario.nombres} {usuario.apellidos}</span>
+                      </CardTitle>
+                      <CardDescription>ID: {usuario.id}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        {usuario.fechaNacimiento && (
+                          <p className="text-muted-foreground">
+                            <strong>Fecha Nacimiento:</strong> {new Date(usuario.fechaNacimiento).toLocaleDateString()}
+                          </p>
+                        )}
+                        <Badge className="mt-2 bg-blue-100 text-blue-800 border-blue-200">
+                          Usuario Registrado
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Profesionales Tab */}
+          <TabsContent value="profesionales" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Profesionales de Salud</h2>
+              <p className="text-muted-foreground">Gestión de profesionales registrados en centros de salud</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {profesionales.length === 0 ? (
+                <Card className="col-span-full">
+                  <CardContent className="p-12 text-center">
+                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No hay profesionales registrados</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                profesionales.map((prof) => (
+                  <Card key={prof.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Users className="w-5 h-5" />
+                            <span>{prof.nombres} {prof.apellidos}</span>
+                          </CardTitle>
+                          {prof.numeroRegistro && (
+                            <CardDescription className="mt-1">Reg: {prof.numeroRegistro}</CardDescription>
+                          )}
+                        </div>
+                        <Badge className={prof.estado === 'ACTIVO' ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>
+                          {prof.estado}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        {prof.email && (
+                          <p className="text-muted-foreground">
+                            <strong>Email:</strong> {prof.email}
+                          </p>
+                        )}
+                        {prof.telefono && (
+                          <p className="text-muted-foreground">
+                            <strong>Teléfono:</strong> {prof.telefono}
+                          </p>
+                        )}
+                        {prof.fechaRegistroProfesional && (
+                          <p className="text-muted-foreground text-xs">
+                            Registrado: {new Date(prof.fechaRegistroProfesional).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
           {/* Estadísticas Tab */}
           <TabsContent value="estadisticas" className="space-y-6">
             <div>
@@ -298,12 +642,12 @@ export default function AdminHCENPortal() {
               <p className="text-muted-foreground">Resumen general del sistema HCEN</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Clínicas Activas</p>
+                      <p className="text-sm text-muted-foreground">Clínicas</p>
                       <p className="text-2xl font-bold text-foreground">{clinicas.length}</p>
                     </div>
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -322,6 +666,48 @@ export default function AdminHCENPortal() {
                     </div>
                     <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                       <FileText className="w-6 h-6 text-green-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Administradores</p>
+                      <p className="text-2xl font-bold text-foreground">{administradores.filter(a => a.activo).length}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Usuarios</p>
+                      <p className="text-2xl font-bold text-foreground">{usuarios.length}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Users className="w-6 h-6 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Profesionales</p>
+                      <p className="text-2xl font-bold text-foreground">{profesionales.filter(p => p.estado === 'ACTIVO').length}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <Users className="w-6 h-6 text-orange-600" />
                     </div>
                   </div>
                 </CardContent>
