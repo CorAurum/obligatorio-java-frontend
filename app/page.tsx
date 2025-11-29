@@ -16,25 +16,33 @@ function DashboardContent() {
   const [selectedPortal, setSelectedPortal] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
-  const code = searchParams.get('code')
-  const state = searchParams.get('state')
+  // Handle error parameters from failed authentication
+  const error = searchParams.get('error')
 
-  // If we have code and state parameters from gub.uy, redirect to callback
-  useEffect(() => {
-    if (code && state) {
-      // Get portal parameter if available
-      const portal = searchParams.get('portal') || 'usuario';
-      router.replace(`/api/auth/callback?code=${code}&state=${state}&portal=${portal}`)
-    }
-  }, [code, state, router, searchParams])
-
-  // Show loading while redirecting
-  if (code && state) {
+  // Show error message if authentication failed
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Completando autenticación...</p>
+        <div className="max-w-md mx-auto px-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mr-3">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold text-red-800">Error de Autenticación</h2>
+            </div>
+            <p className="text-red-700 mb-4">
+              {decodeURIComponent(error)}
+            </p>
+            <button
+              onClick={() => window.location.href = '/'}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Intentar de Nuevo
+            </button>
+          </div>
         </div>
       </div>
     )

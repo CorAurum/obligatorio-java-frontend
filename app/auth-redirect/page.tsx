@@ -1,65 +1,23 @@
-"use client"
+import { redirect } from 'next/navigation';
 
-import { Suspense, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+export default async function AuthRedirectPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // Await searchParams since it's a Promise in Next.js 15
+  const params = await searchParams;
 
-function AuthRedirectContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const portal = searchParams.get('portal')
+  // Build the URL for the session setup API route
+  const setupUrl = new URL('/api/auth/setup-session', 'http://localhost:3000');
 
-  useEffect(() => {
-    async function checkRoleAndRedirect() {
-      try {
-        // Get userInfo from session/cookie or fetch it
-        const response = await fetch('/api/auth/userinfo')
-
-        if (!response.ok) {
-          console.error('Failed to get user info')
-          router.push('/?error=auth_failed')
-          return
-        }
-
-        // Admin verification happens automatically in backend callback
-        // If user is not admin, backend returns error and redirects to /?error=not_admin
-        // So we just need to redirect to the appropriate portal
-
-        if (portal === 'admin') {
-          router.push('/admin-hcen')
-        } else {
-          // For usuario portal
-          router.push('/usuario-salud')
-        }
-      } catch (error) {
-        console.error('Error checking role:', error)
-        router.push('/?error=redirect_failed')
-      }
+  // Copy all search parameters to the setup URL
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) {
+      setupUrl.searchParams.set(key, Array.isArray(value) ? value[0] : value);
     }
+  }
 
-    checkRoleAndRedirect()
-  }, [router, portal])
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-gray-600">Verificando permisos...</p>
-      </div>
-    </div>
-  )
-}
-
-export default function AuthRedirectPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando...</p>
-        </div>
-      </div>
-    }>
-      <AuthRedirectContent />
-    </Suspense>
-  )
+  // Redirect to the API route that handles session setup
+  redirect(setupUrl.toString());
 }
