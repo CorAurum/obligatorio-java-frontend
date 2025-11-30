@@ -1,25 +1,16 @@
-import { NextResponse } from 'next/server';
 
 export default function DebugPage() {
   const config = {
-    OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID ? '✓ Set' : '✗ Missing',
-    OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET ? '✓ Set' : '✗ Missing',
-    OIDC_REDIRECT_URI: process.env.OIDC_REDIRECT_URI || 'Not set',
-    OIDC_AUTHORIZE_URL: process.env.OIDC_AUTHORIZE_URL || 'Not set',
-    OIDC_TOKEN_URL: process.env.OIDC_TOKEN_URL || 'Not set',
-    OIDC_SCOPE: process.env.OIDC_SCOPE || 'Not set',
-    OIDC_LOGOUT_URL: process.env.OIDC_LOGOUT_URL || 'Not set',
-    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || 'Not set',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'Not set',
     SESSION_SECRET: process.env.SESSION_SECRET ? '✓ Set' : '✗ Missing',
+    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || 'Not set',
   };
-
-  const expectedRedirectUri = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080'}/api/auth/callback`;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white shadow rounded-lg p-6">
-          <h1 className="text-2xl font-bold mb-6 text-gray-900">OIDC Configuration Debug</h1>
+          <h1 className="text-2xl font-bold mb-6 text-gray-900">Backend Authentication Configuration Debug</h1>
 
           <div className="space-y-4">
             <div>
@@ -37,65 +28,39 @@ export default function DebugPage() {
             </div>
 
             <div className="border-t pt-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-3">Expected Configuration</h2>
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">Backend Endpoints</h2>
               <div className="space-y-2">
                 <div className="p-3 bg-blue-50 rounded">
-                  <strong>Expected Redirect URI:</strong>
-                  <code className="ml-2 text-blue-800">{process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080'}/</code>
-                  <div className="text-sm text-blue-700 mt-1">
-                    Your OIDC provider redirects to the home page (due to service restrictions), and we handle the callback from there.
-                  </div>
+                  <strong>Backend Login:</strong>
+                  <code className="ml-2 text-blue-800">{process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/CompC-1.0-SNAPSHOT'}/api/auth/login</code>
                 </div>
                 <div className="p-3 bg-green-50 rounded">
-                  <strong>Internal Callback Endpoint:</strong>
-                  <code className="ml-2 text-green-800">{expectedRedirectUri}</code>
-                  <div className="text-sm text-green-700 mt-1">
-                    This is where we process the authentication internally.
-                  </div>
+                  <strong>Backend Callback:</strong>
+                  <code className="ml-2 text-green-800">{process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/CompC-1.0-SNAPSHOT'}/api/auth/callback/web</code>
                 </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-3">Test Endpoints</h2>
-              <div className="space-y-2">
-                <a
-                  href="/api/auth/login"
-                  className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded mr-4"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Test Login Flow
-                </a>
-                <a
-                  href="/callback"
-                  className="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded"
-                >
-                  Test Callback Page
-                </a>
               </div>
             </div>
 
             <div className="border-t pt-4">
               <h2 className="text-lg font-semibold text-gray-800 mb-3">How It Works</h2>
               <div className="text-gray-700 space-y-2">
-                <p>Due to OIDC service restrictions, we use a workaround:</p>
+                <p>New authentication flow with backend handling…</p>
                 <ol className="list-decimal list-inside space-y-1 ml-4">
-                  <li>User clicks "Login with gub.uy"</li>
-                  <li>App redirects to OIDC provider with redirect_uri set to home page</li>
-                  <li>OIDC provider redirects back to home page with code & state parameters</li>
-                  <li>Home page immediately redirects to internal callback handler</li>
-                  <li>Callback handler processes tokens and redirects to success page</li>
+                  <li>User clicks &ldquo;Login with gub.uy&rdquo; on frontend</li>
+                  <li>Frontend redirects to backend login endpoint</li>
+                  <li>Backend handles OIDC flow with gub.uy</li>
+                  <li>Backend processes tokens and returns redirect URL + user info</li>
+                  <li>Frontend stores session and redirects to appropriate portal</li>
                 </ol>
               </div>
 
               <div className="mt-4">
                 <h3 className="font-semibold text-gray-800 mb-2">Common Issues</h3>
                 <ul className="list-disc list-inside space-y-1 text-gray-700">
-                  <li>OIDC_REDIRECT_URI should be set to your base URL (e.g., http://localhost:8080/)</li>
-                  <li>Make sure all required environment variables are set in .env.local</li>
-                  <li>Verify that your OIDC provider endpoints are correct and accessible</li>
-                  <li>If you see "Completing authentication..." for too long, check the callback handler logs</li>
+                  <li>NEXT_PUBLIC_API_URL must point to the deployed backend</li>
+                  <li>Ensure backend is deployed and accessible</li>
+                  <li>Verify backend authentication endpoints are working</li>
+                  <li>Check backend logs for authentication errors</li>
                 </ul>
               </div>
             </div>

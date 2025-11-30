@@ -1,6 +1,6 @@
 // API client for backend communication
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/CompC-1.0-SNAPSHOT/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/CompC-1.0-SNAPSHOT';
 
 export interface DocumentoClinicoDTO {
   fechaCreacion: string;
@@ -85,18 +85,31 @@ class BackendAPI {
   }
 
   /**
+   * Get authentication headers for API requests
+   */
+  private getAuthHeaders(token?: string): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  /**
    * Get Usuario ID by cedula
    * Returns the first Usuario ID found for the given cedula
    */
-  async getUsuarioIdByCedula(cedula: string): Promise<string> {
-    const url = `${this.baseURL}/identificadores/usuario/ci/${cedula}`;
+  async getUsuarioIdByCedula(cedula: string, token?: string): Promise<string> {
+    const url = `${this.baseURL}/api/identificadores/usuario/ci/${cedula}`;
     console.log('Llamando a URL:', url);
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     console.log('Response status:', response.status, response.statusText);
@@ -121,12 +134,10 @@ class BackendAPI {
   /**
    * Get user's clinical documents
    */
-  async getDocumentosClinicos(usuarioId: string): Promise<DocumentoClinicoDTO[]> {
-    const response = await fetch(`${this.baseURL}/documentoClinico/usuarioDTO/${usuarioId}`, {
+  async getDocumentosClinicos(usuarioId: string, token?: string): Promise<DocumentoClinicoDTO[]> {
+    const response = await fetch(`${this.baseURL}/api/documentoClinico/usuarioDTO/${usuarioId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
@@ -139,12 +150,10 @@ class BackendAPI {
   /**
    * Get user's access policies
    */
-  async getPoliticasAcceso(usuarioId: string): Promise<PoliticaDeAccesoDTO[]> {
-    const response = await fetch(`${this.baseURL}/politicas/usuario/${usuarioId}`, {
+  async getPoliticasAcceso(usuarioId: string, token?: string): Promise<PoliticaDeAccesoDTO[]> {
+    const response = await fetch(`${this.baseURL}/api/politicas/usuario/${usuarioId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
@@ -157,12 +166,10 @@ class BackendAPI {
   /**
    * Create new access policy
    */
-  async crearPolitica(request: CrearPoliticaRequest): Promise<PoliticaDeAccesoDTO> {
-    const response = await fetch(`${this.baseURL}/politicas`, {
+  async crearPolitica(request: CrearPoliticaRequest, token?: string): Promise<PoliticaDeAccesoDTO> {
+    const response = await fetch(`${this.baseURL}/api/politicas`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify(request),
     });
 
@@ -177,12 +184,10 @@ class BackendAPI {
   /**
    * Revoke an access policy
    */
-  async revocarPolitica(politicaId: string): Promise<{ status: string }> {
-    const response = await fetch(`${this.baseURL}/politicas/${politicaId}/revocar`, {
+  async revocarPolitica(politicaId: string, token?: string): Promise<{ status: string }> {
+    const response = await fetch(`${this.baseURL}/api/politicas/${politicaId}/revocar`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
@@ -194,16 +199,41 @@ class BackendAPI {
   }
 
   /**
+   * Get admin by cedula
+   * Returns the Administrador object if found, null otherwise
+   */
+  async getAdminByCedula(cedula: string, token?: string): Promise<Administrador | null> {
+    try {
+      console.log('Llamando a URL:', `${this.baseURL}/administradores/cedula/${cedula}`);
+      const response = await fetch(`${this.baseURL}/api/administradores/cedula/${cedula}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(token),
+      });
+
+      if (response.status === 404) {
+        return null; // Not an admin
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error getting admin by cedula: ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Error getting admin by cedula:', error);
+      return null;
+    }
+  }
+
+  /**
    * Check if a cedula belongs to an admin
    * Returns the Administrador object if found, null otherwise
    */
-  async checkIsAdmin(cedula: string): Promise<Administrador | null> {
+  async checkIsAdmin(cedula: string, token?: string): Promise<Administrador | null> {
     try {
-      const response = await fetch(`${this.baseURL}/administradores/cedula/${cedula}`, {
+      const response = await fetch(`${this.baseURL}/api/administradores/cedula/${cedula}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(token),
       });
 
       if (response.status === 404) {
@@ -224,12 +254,10 @@ class BackendAPI {
   /**
    * Get all centros de salud
    */
-  async getCentrosDeSalud(): Promise<CentroDeSalud[]> {
-    const response = await fetch(`${this.baseURL}/CentroDeSalud`, {
+  async getCentrosDeSalud(token?: string): Promise<CentroDeSalud[]> {
+    const response = await fetch(`${this.baseURL}/api/CentroDeSalud`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
@@ -242,12 +270,10 @@ class BackendAPI {
   /**
    * Get all especialidades
    */
-  async getEspecialidades(): Promise<Especialidad[]> {
-    const response = await fetch(`${this.baseURL}/especialidades`, {
+  async getEspecialidades(token?: string): Promise<Especialidad[]> {
+    const response = await fetch(`${this.baseURL}/api/especialidades`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
@@ -260,12 +286,10 @@ class BackendAPI {
   /**
    * Create a new especialidad
    */
-  async crearEspecialidad(nombre: string, descripcion?: string): Promise<Especialidad> {
-    const response = await fetch(`${this.baseURL}/especialidades`, {
+  async crearEspecialidad(nombre: string, descripcion?: string, token?: string): Promise<Especialidad> {
+    const response = await fetch(`${this.baseURL}/api/especialidades`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify({ nombre, descripcion }),
     });
 
@@ -280,12 +304,10 @@ class BackendAPI {
   /**
    * Create a new centro de salud
    */
-  async crearCentroDeSalud(centro: Partial<CentroDeSalud>, adminId: number): Promise<CentroDeSalud> {
-    const response = await fetch(`${this.baseURL}/CentroDeSalud?adminId=${adminId}`, {
+  async crearCentroDeSalud(centro: Partial<CentroDeSalud>, adminId: number, token?: string): Promise<CentroDeSalud> {
+    const response = await fetch(`${this.baseURL}/api/CentroDeSalud?adminId=${adminId}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify(centro),
     });
 
@@ -300,12 +322,10 @@ class BackendAPI {
   /**
    * Get all administradores
    */
-  async getAdministradores(): Promise<Administrador[]> {
-    const response = await fetch(`${this.baseURL}/administradores`, {
+  async getAdministradores(token?: string): Promise<Administrador[]> {
+    const response = await fetch(`${this.baseURL}/api/administradores`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
@@ -318,12 +338,10 @@ class BackendAPI {
   /**
    * Create a new administrador
    */
-  async crearAdministrador(admin: Omit<Administrador, 'id' | 'fechaAlta'>): Promise<Administrador> {
-    const response = await fetch(`${this.baseURL}/administradores`, {
+  async crearAdministrador(admin: Omit<Administrador, 'id' | 'fechaAlta'>, token?: string): Promise<Administrador> {
+    const response = await fetch(`${this.baseURL}/api/administradores`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify(admin),
     });
 
@@ -338,12 +356,10 @@ class BackendAPI {
   /**
    * Update an administrador
    */
-  async actualizarAdministrador(id: number, admin: Partial<Administrador>): Promise<Administrador> {
-    const response = await fetch(`${this.baseURL}/administradores/${id}`, {
+  async actualizarAdministrador(id: number, admin: Partial<Administrador>, token?: string): Promise<Administrador> {
+    const response = await fetch(`${this.baseURL}/api/administradores/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify(admin),
     });
 
@@ -358,19 +374,17 @@ class BackendAPI {
   /**
    * Toggle administrador active status
    */
-  async toggleAdministradorEstado(id: number, activo: boolean): Promise<Administrador> {
-    return this.actualizarAdministrador(id, { activo });
+  async toggleAdministradorEstado(id: number, activo: boolean, token?: string): Promise<Administrador> {
+    return this.actualizarAdministrador(id, { activo }, token);
   }
 
   /**
    * Delete an administrador
    */
-  async eliminarAdministrador(id: number): Promise<void> {
-    const response = await fetch(`${this.baseURL}/administradores/${id}`, {
+  async eliminarAdministrador(id: number, token?: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/api/administradores/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
@@ -382,12 +396,10 @@ class BackendAPI {
   /**
    * Get all usuarios
    */
-  async getUsuarios(): Promise<Usuario[]> {
-    const response = await fetch(`${this.baseURL}/usuarios`, {
+  async getUsuarios(token?: string): Promise<Usuario[]> {
+    const response = await fetch(`${this.baseURL}/api/usuarios`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
@@ -400,12 +412,10 @@ class BackendAPI {
   /**
    * Get all profesionales de salud
    */
-  async getProfesionales(): Promise<ProfesionalDeSalud[]> {
-    const response = await fetch(`${this.baseURL}/profesionales`, {
+  async getProfesionales(token?: string): Promise<ProfesionalDeSalud[]> {
+    const response = await fetch(`${this.baseURL}/api/profesionales`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
     });
 
     if (!response.ok) {
@@ -418,12 +428,10 @@ class BackendAPI {
   /**
    * Create a new profesional de salud
    */
-  async crearProfesional(profesional: Omit<ProfesionalDeSalud, 'id' | 'fechaRegistroProfesional' | 'centroDeSalud'>, centroId: string, adminId: number): Promise<ProfesionalDeSalud> {
-    const response = await fetch(`${this.baseURL}/profesionales?centroId=${centroId}&adminId=${adminId}`, {
+  async crearProfesional(profesional: Omit<ProfesionalDeSalud, 'id' | 'fechaRegistroProfesional' | 'centroDeSalud'>, centroId: string, adminId: number, token?: string): Promise<ProfesionalDeSalud> {
+    const response = await fetch(`${this.baseURL}/api/profesionales?centroId=${centroId}&adminId=${adminId}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify(profesional),
     });
 
@@ -438,12 +446,10 @@ class BackendAPI {
   /**
    * Update a profesional de salud
    */
-  async actualizarProfesional(id: string, profesional: Partial<ProfesionalDeSalud>): Promise<ProfesionalDeSalud> {
-    const response = await fetch(`${this.baseURL}/profesionales/${id}`, {
+  async actualizarProfesional(id: string, profesional: Partial<ProfesionalDeSalud>, token?: string): Promise<ProfesionalDeSalud> {
+    const response = await fetch(`${this.baseURL}/api/profesionales/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify(profesional),
     });
 

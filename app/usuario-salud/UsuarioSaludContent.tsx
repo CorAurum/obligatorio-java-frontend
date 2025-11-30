@@ -38,9 +38,14 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
   const [revocando, setRevocando] = useState<string | null>(null);
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
 
-  // Get cedula from gub.uy token
-  // numero_documento is the field name from gub.uy (IdUruguay)
-  const cedula = userInfo?.numero_documento || userInfo?.document?.number || userInfo?.sub;
+  // Debug: log the userInfo to see what we have
+  console.log('UsuarioSaludContent userInfo:', userInfo);
+
+  // Get cedula from decoded JWT token
+  // Try multiple field names that might contain the document number
+  const cedula = userInfo?.numeroDocumento || userInfo?.numero_documento || userInfo?.document?.number || userInfo?.sub || userInfo?.id;
+
+  console.log('Extracted cedula:', cedula);
 
   // Handle revocar política
   const handleRevocarPolitica = async (politicaId: string) => {
@@ -50,7 +55,13 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
 
     try {
       setRevocando(politicaId);
-      await backendAPI.revocarPolitica(politicaId);
+      const response = await fetch(`/api/user/policies/${politicaId}/revoke`, {
+        method: 'PATCH',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to revoke policy');
+      }
 
       // Update local state
       setPoliticas(prev =>
@@ -81,18 +92,16 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
         console.log('UserInfo completo:', userInfo);
         console.log('Cedula extraída:', cedula);
 
-        // Step 1: Get Usuario ID from cedula
-        const resolvedUsuarioId = await backendAPI.getUsuarioIdByCedula(cedula);
-        setUsuarioId(resolvedUsuarioId);
+        // Fetch user data from our API route
+        const response = await fetch('/api/user/data');
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
+        }
 
-        // Step 2: Fetch documentos clínicos and políticas in parallel
-        const [documentosData, politicasData] = await Promise.all([
-          backendAPI.getDocumentosClinicos(resolvedUsuarioId),
-          backendAPI.getPoliticasAcceso(resolvedUsuarioId),
-        ]);
-
-        setDocumentos(documentosData);
-        setPoliticas(politicasData);
+        const data = await response.json();
+        setUsuarioId(data.usuarioId);
+        setDocumentos(data.documentos);
+        setPoliticas(data.politicas);
         setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -195,11 +204,7 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                 <User className="w-3 h-3 mr-1" />
                 CI: {cedula || 'No disponible'}
               </Badge>
-              {usuarioId && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                  Usuario: {usuarioId}
-                </Badge>
-              )}
+
               <form action="/api/auth/logout" method="POST">
                 <button
                   type="submit"

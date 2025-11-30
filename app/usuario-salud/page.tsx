@@ -10,22 +10,16 @@ interface SessionData {
         token_type: string;
         expires_in: number;
     };
+    userInfo?: {
+        id: string;
+        numeroDocumento?: string;
+        email?: string;
+        name?: string;
+        givenName?: string;
+        familyName?: string;
+        preferredUsername?: string;
+    };
     isLoggedIn?: boolean;
-}
-
-function decodeJWT(token: string) {
-    try {
-        const parts = token.split('.');
-        if (parts.length !== 3) return null;
-
-        const header = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
-        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-
-        return { header, payload, signature: parts[2] };
-    } catch (error) {
-        console.error('Failed to decode JWT:', error);
-        return null;
-    }
 }
 
 export default async function UsuarioSaludPage() {
@@ -39,8 +33,5 @@ export default async function UsuarioSaludPage() {
         redirect('/');
     }
 
-    const decoded = session.user?.id_token ? decodeJWT(session.user.id_token) : null;
-    const userInfo = decoded?.payload;
-
-    return <UsuarioSaludContent userInfo={userInfo} />;
+    return <UsuarioSaludContent userInfo={session.userInfo} />;
 }

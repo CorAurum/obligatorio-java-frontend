@@ -3,44 +3,40 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 interface SessionData {
-    user?: {
-        id_token: string;
-        access_token: string;
-        token_type: string;
-        expires_in: number;
-    };
-    isLoggedIn?: boolean;
+  user?: {
+    id_token: string;
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+  };
+  userInfo?: OidcUserInfo;
+  isLoggedIn?: boolean;
 }
 
-function decodeJWT(token: string) {
-    try {
-        const parts = token.split('.');
-        if (parts.length !== 3) return null;
-
-        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-        return payload;
-    } catch (error) {
-        console.error('Failed to decode JWT:', error);
-        return null;
-    }
+interface OidcUserInfo {
+  subject: string;
+  numeroDocumento: string;
+  email: string;
+  name: string;
+  givenName?: string;
+  familyName?: string;
+  preferredUsername?: string;
+  issuedAt?: number;
+  expiresAt?: number;
+  issuer?: string;
+  audience?: string;
 }
 
 export async function GET() {
-    const session = await getIronSession<SessionData>(await cookies(), {
-        password: process.env.SESSION_SECRET || 'a4b23d96f8d3e44f8f40d61c12b5a9d057e0dba5cf871e2fd41f6b033a1c8b67',
-        cookieName: 'auth-session',
-    });
+  const session = await getIronSession<SessionData>(await cookies(), {
+    password: process.env.SESSION_SECRET!,
+    cookieName: 'auth-session',
+  });
 
-    if (!session.isLoggedIn || !session.user?.id_token) {
-        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
+  if (!session.isLoggedIn || !session.userInfo) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
 
-    // Decode the JWT to get user info
-    const userInfo = decodeJWT(session.user.id_token);
-
-    if (!userInfo) {
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    return NextResponse.json(userInfo);
+  // Return the user info that backend already decoded
+  return NextResponse.json(session.userInfo);
 }
