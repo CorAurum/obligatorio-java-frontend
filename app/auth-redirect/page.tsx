@@ -8,8 +8,9 @@ export default async function AuthRedirectPage({
   // Await searchParams since it's a Promise in Next.js 15
   const params = await searchParams;
 
+  const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://hcen-central.vercel.app:3000';
   // Build the URL for the session setup API route
-  const setupUrl = new URL('/api/auth/setup-session', 'http://localhost:3000');
+  const setupUrl = new URL('/api/auth/setup-session', frontendUrl);
 
   // Copy all search parameters to the setup URL
   for (const [key, value] of Object.entries(params)) {
