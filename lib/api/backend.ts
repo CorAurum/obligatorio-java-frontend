@@ -199,6 +199,33 @@ class BackendAPI {
   }
 
   /**
+   * Get admin by cedula
+   * Returns the Administrador object if found, null otherwise
+   */
+  async getAdminByCedula(cedula: string, token?: string): Promise<Administrador | null> {
+    try {
+      console.log('Llamando a URL:', `${this.baseURL}/administradores/cedula/${cedula}`);
+      const response = await fetch(`${this.baseURL}/api/administradores/cedula/${cedula}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(token),
+      });
+
+      if (response.status === 404) {
+        return null; // Not an admin
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error getting admin by cedula: ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Error getting admin by cedula:', error);
+      return null;
+    }
+  }
+
+  /**
    * Check if a cedula belongs to an admin
    * Returns the Administrador object if found, null otherwise
    */
@@ -347,8 +374,8 @@ class BackendAPI {
   /**
    * Toggle administrador active status
    */
-  async toggleAdministradorEstado(id: number, activo: boolean): Promise<Administrador> {
-    return this.actualizarAdministrador(id, { activo });
+  async toggleAdministradorEstado(id: number, activo: boolean, token?: string): Promise<Administrador> {
+    return this.actualizarAdministrador(id, { activo }, token);
   }
 
   /**

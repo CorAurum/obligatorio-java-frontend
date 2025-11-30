@@ -18,6 +18,7 @@ interface SessionData {
     familyName?: string;
     preferredUsername?: string;
   };
+  role?: string;
   isLoggedIn?: boolean;
 }
 
@@ -90,7 +91,8 @@ export async function GET(request: NextRequest) {
     expires_in: 86400
   };
 
-  // Store decoded user info from JWT, with fallbacks
+  // Store role and user info from JWT, with fallbacks
+  session.role = decodedUserInfo.role || 'USUARIO';
   session.userInfo = {
     id: decodedUserInfo.userId || decodedUserInfo.sub || userId || '',
     numeroDocumento: decodedUserInfo.numero_documento || decodedUserInfo.numeroDocumento || decodedUserInfo.document?.number || decodedUserInfo.sub || userId || '',
@@ -106,6 +108,7 @@ export async function GET(request: NextRequest) {
 
   // Redirect to appropriate portal
   let redirectUrl = '/';
+  console.log('Session setup portal:', portal);
   switch (portal) {
     case 'admin':
       redirectUrl = '/admin-hcen';

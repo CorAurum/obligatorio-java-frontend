@@ -204,11 +204,7 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                 <User className="w-3 h-3 mr-1" />
                 CI: {cedula || 'No disponible'}
               </Badge>
-              {usuarioId && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                  Usuario: {usuarioId}
-                </Badge>
-              )}
+
               <form action="/api/auth/logout" method="POST">
                 <button
                   type="submit"
