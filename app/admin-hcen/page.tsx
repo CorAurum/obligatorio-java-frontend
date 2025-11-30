@@ -27,6 +27,7 @@ import {
   Plus,
   Edit,
   Power,
+  User,
 } from "lucide-react"
 import { backendAPI, type CentroDeSalud, type Especialidad, type Administrador, type Usuario, type ProfesionalDeSalud } from "@/lib/api/backend"
 
@@ -68,20 +69,16 @@ export default function AdminHCENPortal() {
           setUserInfo(user)
         }
 
-        // Load all data
-        const [clinicasData, especialidadesData, administradoresData, usuariosData, profesionalesData] = await Promise.all([
-          backendAPI.getCentrosDeSalud(),
-          backendAPI.getEspecialidades(),
-          backendAPI.getAdministradores(),
-          backendAPI.getUsuarios(),
-          backendAPI.getProfesionales()
-        ])
-
-        setClinicas(clinicasData)
-        setEspecialidades(especialidadesData)
-        setAdministradores(administradoresData)
-        setUsuarios(usuariosData)
-        setProfesionales(profesionalesData)
+        // Load all admin data from our API route
+        const adminDataResponse = await fetch('/api/admin/data')
+        if (adminDataResponse.ok) {
+          const adminData = await adminDataResponse.json()
+          setClinicas(adminData.clinicas || [])
+          setEspecialidades(adminData.especialidades || [])
+          setAdministradores(adminData.administradores || [])
+          setUsuarios(adminData.usuarios || [])
+          setProfesionales(adminData.profesionales || [])
+        }
       } catch (error) {
         console.error('Error loading data:', error)
       } finally {
@@ -92,6 +89,9 @@ export default function AdminHCENPortal() {
     loadData()
   }, [])
 
+  // Extract cedula from userInfo (same logic as usuario-salud page)
+  const cedula = userInfo?.numeroDocumento || userInfo?.numero_documento || userInfo?.document?.number || userInfo?.sub || userInfo?.id
+
   const handleCrearEspecialidad = async () => {
     if (!nuevaEspecialidad.nombre.trim()) {
       return
@@ -99,11 +99,22 @@ export default function AdminHCENPortal() {
 
     setCreatingEspecialidad(true)
     try {
-      const nuevaEsp = await backendAPI.crearEspecialidad(
-        nuevaEspecialidad.nombre,
-        nuevaEspecialidad.descripcion
-      )
+      const response = await fetch('/api/admin/especialidades', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: nuevaEspecialidad.nombre,
+          descripcion: nuevaEspecialidad.descripcion,
+        }),
+      })
 
+      if (!response.ok) {
+        throw new Error('Failed to create especialidad')
+      }
+
+      const nuevaEsp = await response.json()
       setEspecialidades([...especialidades, nuevaEsp])
       setNuevaEspecialidad({ nombre: "", descripcion: "" })
       setShowEspecialidadDialog(false)
@@ -150,11 +161,35 @@ export default function AdminHCENPortal() {
     try {
       if (editingAdmin) {
         // Update existing admin
-        const updatedAdmin = await backendAPI.actualizarAdministrador(editingAdmin.id, adminForm)
+        const response = await fetch(`/api/admin/administradores/${editingAdmin.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(adminForm),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to update administrador')
+        }
+
+        const updatedAdmin = await response.json()
         setAdministradores(administradores.map(a => a.id === editingAdmin.id ? updatedAdmin : a))
       } else {
         // Create new admin
-        const nuevoAdmin = await backendAPI.crearAdministrador(adminForm)
+        const response = await fetch('/api/admin/administradores', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(adminForm),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to create administrador')
+        }
+
+        const nuevoAdmin = await response.json()
         setAdministradores([...administradores, nuevoAdmin])
       }
       setShowAdminDialog(false)
@@ -168,7 +203,19 @@ export default function AdminHCENPortal() {
 
   const handleToggleAdminStatus = async (admin: Administrador) => {
     try {
-      const updatedAdmin = await backendAPI.toggleAdministradorEstado(admin.id, !admin.activo)
+      const response = await fetch(`/api/admin/administradores/${admin.id}/toggle-status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ activo: !admin.activo }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle admin status')
+      }
+
+      const updatedAdmin = await response.json()
       setAdministradores(administradores.map(a => a.id === admin.id ? updatedAdmin : a))
     } catch (error) {
       console.error('Error toggling admin status:', error)
@@ -214,11 +261,13 @@ export default function AdminHCENPortal() {
               <Badge variant="outline" className="text-xs">
                 Administrador del Sistema
               </Badge>
-              {userInfo && (
+              {cedula && (
                 <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                  {userInfo.nombre_completo || userInfo.primer_nombre}
+                  <User className="w-3 h-3 mr-1" />
+                  CI: {cedula}
                 </Badge>
               )}
+
               <form action="/api/auth/logout" method="POST">
                 <Button variant="outline" size="sm" type="submit">
                   Cerrar Sesión

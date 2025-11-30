@@ -19,6 +19,7 @@ interface SessionData {
     familyName?: string;
     preferredUsername?: string;
   };
+  role?: string;
   isLoggedIn?: boolean;
 }
 
@@ -32,21 +33,39 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
+  const cedula = session.userInfo.numeroDocumento;
+  const token = session.user.access_token;
+  const role = session.role || 'USUARIO';
+
   try {
-    const cedula = session.userInfo.numeroDocumento;
-    const token = session.user.access_token;
+    let resolvedId: string;
+    let documentos: any[] = [];
+    let politicas: any[] = [];
+    let isAdmin = false;
 
-    // Step 1: Get Usuario ID from cedula
-    const resolvedUsuarioId = await backendAPI.getUsuarioIdByCedula(cedula, token);
+    // First try to get as usuario
+    try {
+      resolvedId = await backendAPI.getUsuarioIdByCedula(cedula, token);
 
-    // Step 2: Fetch documentos clínicos and políticas in parallel
-    const [documentos, politicas] = await Promise.all([
-      backendAPI.getDocumentosClinicos(resolvedUsuarioId, token),
-      backendAPI.getPoliticasAcceso(resolvedUsuarioId, token),
-    ]);
+      // If successful, fetch documentos clínicos and políticas in parallel
+      [documentos, politicas] = await Promise.all([
+        backendAPI.getDocumentosClinicos(resolvedId, token),
+        backendAPI.getPoliticasAcceso(resolvedId, token),
+      ]);
+    } catch (usuarioError) {
+      // If usuario lookup fails, try admin lookup
+      console.log('Usuario lookup failed, trying admin lookup:', usuarioError);
+      const adminData = await backendAPI.getAdminByCedula(cedula, token);
+      if (!adminData) {
+        throw new Error(`User not found as usuario or admin with cedula ${cedula}`);
+      }
+      resolvedId = adminData.id.toString();
+      isAdmin = true;
+      // Admins don't have clinical documents or policies, so return empty arrays
+    }
 
     return NextResponse.json({
-      usuarioId: resolvedUsuarioId,
+      usuarioId: resolvedId,
       documentos,
       politicas,
     });
