@@ -31,9 +31,10 @@ export default function NotificacionesDropdown({ usuarioId }: NotificacionesDrop
     try {
       setLoading(true)
       const todas = await backendAPI.getNotificacionesTodas(usuarioId)
+      console.log('📬 Notificaciones cargadas:', todas)
       setNotificaciones(todas)
     } catch (error) {
-      console.error('Error cargando notificaciones:', error)
+      console.error('❌ Error cargando notificaciones:', error)
     } finally {
       setLoading(false)
     }
@@ -53,16 +54,18 @@ export default function NotificacionesDropdown({ usuarioId }: NotificacionesDrop
     const interval = setInterval(async () => {
       try {
         const nuevas = await backendAPI.getNotificacionesNuevas(usuarioId)
+        console.log('🔔 Polling - Nuevas notificaciones:', nuevas.length)
         if (nuevas.length > 0) {
           // Agregar nuevas notificaciones sin duplicar
           setNotificaciones(prev => {
             const existingIds = new Set(prev.map(n => n.id))
             const notificacionesNuevas = nuevas.filter(n => !existingIds.has(n.id))
+            console.log('➕ Agregando notificaciones nuevas:', notificacionesNuevas.length)
             return [...notificacionesNuevas, ...prev]
           })
         }
       } catch (error) {
-        console.error('Error obteniendo notificaciones nuevas:', error)
+        console.error('❌ Error obteniendo notificaciones nuevas:', error)
       }
     }, 30000) // 30 segundos
 
@@ -70,7 +73,7 @@ export default function NotificacionesDropdown({ usuarioId }: NotificacionesDrop
   }, [usuarioId])
 
   // Marcar notificación como leída
-  const marcarComoLeida = async (notificacionId: string) => {
+  const marcarComoLeida = async (notificacionId: number) => {
     try {
       await backendAPI.marcarNotificacionesLeidas(usuarioId, [notificacionId])
 

@@ -78,11 +78,11 @@ export interface ProfesionalDeSalud {
 }
 
 export interface Notificacion {
-  id: string;
-  usuarioId: string;
+  id: number;
+  userId: string;
   titulo: string;
   mensaje: string;
-  tipo: 'INFO' | 'ALERTA' | 'ACCESO' | 'POLITICA';
+  tipo?: 'INFO' | 'ALERTA' | 'ACCESO' | 'POLITICA';
   leida: boolean;
   fechaCreacion: string;
   fechaLectura?: string;
@@ -507,7 +507,7 @@ class BackendAPI {
   /**
    * Mark notifications as read
    */
-  async marcarNotificacionesLeidas(usuarioId: string, notificacionIds: string[], token?: string): Promise<void> {
+  async marcarNotificacionesLeidas(usuarioId: string, notificacionIds: number[], token?: string): Promise<void> {
     const response = await fetch(`${this.baseURL}/api/notificaciones/marcar-leidas/${usuarioId}`, {
       method: 'POST',
       headers: this.getAuthHeaders(token),
