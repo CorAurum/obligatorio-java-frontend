@@ -146,7 +146,7 @@ export default function NotificacionesDropdown({ usuarioId }: NotificacionesDrop
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent align="end" className="w-80 bg-white">
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Notificaciones</span>
           {notificacionesNuevas > 0 && (

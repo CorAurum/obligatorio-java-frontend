@@ -476,7 +476,7 @@ class BackendAPI {
    * Get new notifications for a user
    */
   async getNotificacionesNuevas(usuarioId: string, token?: string): Promise<Notificacion[]> {
-    const response = await fetch(`${this.baseURL}/notificaciones/nuevas/${usuarioId}`, {
+    const response = await fetch(`${this.baseURL}/api/notificaciones/nuevas/${usuarioId}`, {
       method: 'GET',
       headers: this.getAuthHeaders(token),
     });
@@ -492,7 +492,7 @@ class BackendAPI {
    * Get all notifications for a user
    */
   async getNotificacionesTodas(usuarioId: string, token?: string): Promise<Notificacion[]> {
-    const response = await fetch(`${this.baseURL}/notificaciones/todas/${usuarioId}`, {
+    const response = await fetch(`${this.baseURL}/api/notificaciones/todas/${usuarioId}`, {
       method: 'GET',
       headers: this.getAuthHeaders(token),
     });
@@ -508,7 +508,7 @@ class BackendAPI {
    * Mark notifications as read
    */
   async marcarNotificacionesLeidas(usuarioId: string, notificacionIds: string[], token?: string): Promise<void> {
-    const response = await fetch(`${this.baseURL}/notificaciones/marcar-leidas/${usuarioId}`, {
+    const response = await fetch(`${this.baseURL}/api/notificaciones/marcar-leidas/${usuarioId}`, {
       method: 'POST',
       headers: this.getAuthHeaders(token),
       body: JSON.stringify(notificacionIds),
