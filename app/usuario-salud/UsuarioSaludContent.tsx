@@ -21,6 +21,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { backendAPI, DocumentoClinicoDTO, PoliticaDeAccesoDTO } from '@/lib/api/backend';
+import NotificacionesDropdown from '@/components/NotificacionesDropdown';
 
 interface AccesoHistoria {
   id: string
@@ -204,6 +205,9 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                 <User className="w-3 h-3 mr-1" />
                 CI: {cedula || 'No disponible'}
               </Badge>
+
+              {/* Notificaciones */}
+              {usuarioId && <NotificacionesDropdown usuarioId={usuarioId} />}
 
               <form action="/api/auth/logout" method="POST">
                 <button

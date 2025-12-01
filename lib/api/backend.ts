@@ -77,6 +77,17 @@ export interface ProfesionalDeSalud {
   centroDeSalud?: CentroDeSalud;
 }
 
+export interface Notificacion {
+  id: string;
+  usuarioId: string;
+  titulo: string;
+  mensaje: string;
+  tipo: 'INFO' | 'ALERTA' | 'ACCESO' | 'POLITICA';
+  leida: boolean;
+  fechaCreacion: string;
+  fechaLectura?: string;
+}
+
 class BackendAPI {
   private baseURL: string;
 
@@ -459,6 +470,53 @@ class BackendAPI {
     }
 
     return response.json();
+  }
+
+  /**
+   * Get new notifications for a user
+   */
+  async getNotificacionesNuevas(usuarioId: string, token?: string): Promise<Notificacion[]> {
+    const response = await fetch(`${this.baseURL}/notificaciones/nuevas/${usuarioId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching notificaciones nuevas: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get all notifications for a user
+   */
+  async getNotificacionesTodas(usuarioId: string, token?: string): Promise<Notificacion[]> {
+    const response = await fetch(`${this.baseURL}/notificaciones/todas/${usuarioId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching todas las notificaciones: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Mark notifications as read
+   */
+  async marcarNotificacionesLeidas(usuarioId: string, notificacionIds: string[], token?: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/notificaciones/marcar-leidas/${usuarioId}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(notificacionIds),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error marcando notificaciones como leídas: ${response.statusText}`);
+    }
   }
 }
 
