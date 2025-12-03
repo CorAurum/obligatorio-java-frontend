@@ -18,7 +18,6 @@ export default function CrearClinicaPage() {
   const [success, setSuccess] = useState(false)
 
   const [formData, setFormData] = useState({
-    id: "",
     nombre: "",
     tipoInstitucion: "",
     direccion: "",
@@ -72,7 +71,7 @@ export default function CrearClinicaPage() {
     }
   }
 
-  const isFormValid = formData.id && formData.nombre && formData.tipoInstitucion
+  const isFormValid = formData.nombre && formData.tipoInstitucion
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,20 +121,6 @@ export default function CrearClinicaPage() {
                       <AlertDescription className="text-red-800">{error}</AlertDescription>
                     </Alert>
                   )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="id">ID de la Clínica *</Label>
-                    <Input
-                      id="id"
-                      placeholder="Ej: CENT004"
-                      value={formData.id}
-                      onChange={(e) => handleInputChange("id", e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Identificador único para la clínica (ej: CENT001, HOSP001)
-                    </p>
-                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="nombre">Nombre de la Clínica *</Label>

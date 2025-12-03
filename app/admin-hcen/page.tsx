@@ -28,6 +28,7 @@ import {
   Edit,
   Power,
   User,
+  Search,
 } from "lucide-react"
 import { backendAPI, type CentroDeSalud, type Especialidad, type Administrador, type Usuario, type ProfesionalDeSalud } from "@/lib/api/backend"
 
@@ -40,6 +41,13 @@ export default function AdminHCENPortal() {
   const [profesionales, setProfesionales] = useState<ProfesionalDeSalud[]>([])
   const [loading, setLoading] = useState(true)
   const [userInfo, setUserInfo] = useState<any>(null)
+
+  // Estados de búsqueda
+  const [searchClinicas, setSearchClinicas] = useState("")
+  const [searchEspecialidades, setSearchEspecialidades] = useState("")
+  const [searchAdministradores, setSearchAdministradores] = useState("")
+  const [searchUsuarios, setSearchUsuarios] = useState("")
+  const [searchProfesionales, setSearchProfesionales] = useState("")
 
   // Dialog state for creating especialidad
   const [showEspecialidadDialog, setShowEspecialidadDialog] = useState(false)
@@ -223,6 +231,30 @@ export default function AdminHCENPortal() {
     }
   }
 
+  // Funciones de filtrado
+  const clinicasFiltradas = clinicas.filter(clinica =>
+    clinica.nombre.toLowerCase().includes(searchClinicas.toLowerCase())
+  )
+
+  const especialidadesFiltradas = especialidades.filter(esp =>
+    esp.nombre.toLowerCase().includes(searchEspecialidades.toLowerCase())
+  )
+
+  const administradoresFiltrados = administradores.filter(admin =>
+    `${admin.nombre} ${admin.apellido}`.toLowerCase().includes(searchAdministradores.toLowerCase()) ||
+    admin.cedula.includes(searchAdministradores)
+  )
+
+  const usuariosFiltrados = usuarios.filter(usuario => {
+    const nombres = usuario.nombres || ''
+    const apellidos = usuario.apellidos || ''
+    return `${nombres} ${apellidos}`.toLowerCase().includes(searchUsuarios.toLowerCase())
+  })
+
+  const profesionalesFiltrados = profesionales.filter(prof =>
+    `${prof.nombres} ${prof.apellidos}`.toLowerCase().includes(searchProfesionales.toLowerCase())
+  )
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -304,16 +336,29 @@ export default function AdminHCENPortal() {
               </Link>
             </div>
 
+            {/* Barra de búsqueda */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Buscar clínica por nombre..."
+                value={searchClinicas}
+                onChange={(e) => setSearchClinicas(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {clinicas.length === 0 ? (
+              {clinicasFiltradas.length === 0 ? (
                 <Card className="col-span-full">
                   <CardContent className="p-12 text-center">
                     <Hospital className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No hay clínicas registradas</p>
+                    <p className="text-muted-foreground">
+                      {searchClinicas ? 'No se encontraron clínicas con ese nombre' : 'No hay clínicas registradas'}
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
-                clinicas.map((clinica) => (
+                clinicasFiltradas.map((clinica) => (
                   <Card key={clinica.id}>
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
@@ -405,16 +450,29 @@ export default function AdminHCENPortal() {
               </Dialog>
             </div>
 
+            {/* Barra de búsqueda */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Buscar especialidad por nombre..."
+                value={searchEspecialidades}
+                onChange={(e) => setSearchEspecialidades(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {especialidades.length === 0 ? (
+              {especialidadesFiltradas.length === 0 ? (
                 <Card className="col-span-full">
                   <CardContent className="p-12 text-center">
                     <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No hay especialidades registradas</p>
+                    <p className="text-muted-foreground">
+                      {searchEspecialidades ? 'No se encontraron especialidades con ese nombre' : 'No hay especialidades registradas'}
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
-                especialidades.map((esp) => (
+                especialidadesFiltradas.map((esp) => (
                   <Card key={esp.id}>
                     <CardHeader>
                       <CardTitle className="text-base">{esp.nombre}</CardTitle>
@@ -519,16 +577,29 @@ export default function AdminHCENPortal() {
               </Dialog>
             </div>
 
+            {/* Barra de búsqueda */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Buscar administrador por nombre o cédula..."
+                value={searchAdministradores}
+                onChange={(e) => setSearchAdministradores(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {administradores.length === 0 ? (
+              {administradoresFiltrados.length === 0 ? (
                 <Card className="col-span-full">
                   <CardContent className="p-12 text-center">
                     <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No hay administradores registrados</p>
+                    <p className="text-muted-foreground">
+                      {searchAdministradores ? 'No se encontraron administradores con ese criterio' : 'No hay administradores registrados'}
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
-                administradores.map((admin) => (
+                administradoresFiltrados.map((admin) => (
                   <Card key={admin.id}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -589,16 +660,29 @@ export default function AdminHCENPortal() {
               <p className="text-muted-foreground">Visualización de usuarios registrados en el sistema</p>
             </div>
 
+            {/* Barra de búsqueda */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Buscar usuario por nombre..."
+                value={searchUsuarios}
+                onChange={(e) => setSearchUsuarios(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {usuarios.length === 0 ? (
+              {usuariosFiltrados.length === 0 ? (
                 <Card className="col-span-full">
                   <CardContent className="p-12 text-center">
                     <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No hay usuarios registrados</p>
+                    <p className="text-muted-foreground">
+                      {searchUsuarios ? 'No se encontraron usuarios con ese nombre' : 'No hay usuarios registrados'}
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
-                usuarios.map((usuario) => (
+                usuariosFiltrados.map((usuario) => (
                   <Card key={usuario.id}>
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
@@ -632,16 +716,29 @@ export default function AdminHCENPortal() {
               <p className="text-muted-foreground">Gestión de profesionales registrados en centros de salud</p>
             </div>
 
+            {/* Barra de búsqueda */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Buscar profesional por nombre..."
+                value={searchProfesionales}
+                onChange={(e) => setSearchProfesionales(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {profesionales.length === 0 ? (
+              {profesionalesFiltrados.length === 0 ? (
                 <Card className="col-span-full">
                   <CardContent className="p-12 text-center">
                     <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No hay profesionales registrados</p>
+                    <p className="text-muted-foreground">
+                      {searchProfesionales ? 'No se encontraron profesionales con ese nombre' : 'No hay profesionales registrados'}
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
-                profesionales.map((prof) => (
+                profesionalesFiltrados.map((prof) => (
                   <Card key={prof.id}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
