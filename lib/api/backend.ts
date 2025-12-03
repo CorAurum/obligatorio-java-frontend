@@ -408,10 +408,10 @@ class BackendAPI {
   }
 
   /**
-   * Delete an administrador
+   * Change state from administrador
    */
   async eliminarAdministrador(id: number, token?: string): Promise<void> {
-    const response = await fetch(`${this.baseURL}/api/administradores/${id}`, {
+    const response = await fetch(`${this.baseURL}/api/administradores/${id}/inhabilitar`, {
       method: 'PUT',
       headers: this.getAuthHeaders(token),
     });
