@@ -88,6 +88,24 @@ export interface Notificacion {
   fechaLectura?: string;
 }
 
+export interface SolicitudDeAcceso {
+  id: string;
+  solicitanteId: string;
+  fechaSolicitud: string;
+  estado: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA';
+  motivo: string;
+}
+
+export interface LogDeAcceso {
+  profesionalId: string;
+  profesionalNombre: string;
+  profesionalApellido: string;
+  centroNombre: string;
+  fechaAcceso: string;
+  resultado: boolean;
+  motivo: string;
+}
+
 class BackendAPI {
   private baseURL: string;
 
@@ -517,6 +535,66 @@ class BackendAPI {
     if (!response.ok) {
       throw new Error(`Error marcando notificaciones como leídas: ${response.statusText}`);
     }
+  }
+
+  /**
+   * Get pending access requests for a user
+   */
+  async getSolicitudesPendientes(usuarioId: string, token?: string): Promise<SolicitudDeAcceso[]> {
+    const response = await fetch(`${this.baseURL}/api/acceso/solicitudes/pendientes/${usuarioId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching solicitudes pendientes: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Approve an access request
+   */
+  async aprobarSolicitud(solicitudId: string, token?: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/api/acceso/solicitud/${solicitudId}/aprobar`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error aprobando solicitud: ${response.statusText}`);
+    }
+  }
+
+  /**
+   * Reject an access request
+   */
+  async rechazarSolicitud(solicitudId: string, token?: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/api/acceso/solicitud/${solicitudId}/rechazar`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error rechazando solicitud: ${response.statusText}`);
+    }
+  }
+
+  /**
+   * Get access logs for a user
+   */
+  async getLogsDeAcceso(usuarioId: string, token?: string): Promise<LogDeAcceso[]> {
+    const response = await fetch(`${this.baseURL}/api/accesos?usuarioId=${usuarioId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching logs de acceso: ${response.statusText}`);
+    }
+
+    return response.json();
   }
 }
 

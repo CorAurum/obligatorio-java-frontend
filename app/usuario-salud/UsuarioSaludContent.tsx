@@ -20,9 +20,10 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react"
-import { backendAPI, DocumentoClinicoDTO, PoliticaDeAccesoDTO } from '@/lib/api/backend';
+import { backendAPI, DocumentoClinicoDTO, PoliticaDeAccesoDTO, SolicitudDeAcceso, LogDeAcceso } from '@/lib/api/backend';
 import NotificacionesDropdown from '@/components/NotificacionesDropdown';
 import CrearPoliticaDialog from '@/components/CrearPoliticaDialog';
+import SolicitudesAccesoCard from '@/components/SolicitudesAccesoCard';
 
 interface AccesoHistoria {
   id: string
@@ -35,6 +36,8 @@ interface AccesoHistoria {
 export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
   const [documentos, setDocumentos] = useState<DocumentoClinicoDTO[]>([]);
   const [politicas, setPoliticas] = useState<PoliticaDeAccesoDTO[]>([]);
+  const [solicitudesPendientes, setSolicitudesPendientes] = useState<SolicitudDeAcceso[]>([]);
+  const [logsDeAcceso, setLogsDeAcceso] = useState<LogDeAcceso[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revocando, setRevocando] = useState<string | null>(null);
@@ -58,6 +61,30 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
       setPoliticas(politicasData);
     } catch (err) {
       console.error('Error recargando políticas:', err);
+    }
+  };
+
+  // Cargar solicitudes pendientes
+  const cargarSolicitudesPendientes = async () => {
+    if (!usuarioId) return;
+
+    try {
+      const solicitudesData = await backendAPI.getSolicitudesPendientes(usuarioId);
+      setSolicitudesPendientes(solicitudesData);
+    } catch (err) {
+      console.error('Error cargando solicitudes pendientes:', err);
+    }
+  };
+
+  // Cargar logs de acceso
+  const cargarLogsDeAcceso = async () => {
+    if (!usuarioId) return;
+
+    try {
+      const logsData = await backendAPI.getLogsDeAcceso(usuarioId);
+      setLogsDeAcceso(logsData);
+    } catch (err) {
+      console.error('Error cargando logs de acceso:', err);
     }
   };
 
@@ -132,6 +159,14 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
     fetchData();
   }, [cedula]);
 
+  // Cargar solicitudes y logs cuando tengamos el usuarioId
+  useEffect(() => {
+    if (usuarioId) {
+      cargarSolicitudesPendientes();
+      cargarLogsDeAcceso();
+    }
+  }, [usuarioId]);
+
   const [accesos] = useState<AccesoHistoria[]>([
     {
       id: "1",
@@ -159,7 +194,7 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
   const estadisticas = {
     documentos: documentos.length,
     politicas: politicas.filter(p => p.estado === "ACTIVA").length,
-    accesos: accesos.length,
+    accesos: logsDeAcceso.length,
   }
 
   // Show loading state
@@ -454,46 +489,95 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
 
           {/* Tab: Auditoría de Accesos */}
           <TabsContent value="accesos" className="space-y-6">
+            {/* Solicitudes Pendientes */}
+            {usuarioId && (
+              <SolicitudesAccesoCard
+                usuarioId={usuarioId}
+                solicitudes={solicitudesPendientes}
+                onSolicitudesActualizadas={() => {
+                  cargarSolicitudesPendientes();
+                  cargarLogsDeAcceso();
+                }}
+              />
+            )}
+
+            {/* Historial de Accesos */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Eye className="w-5 h-5" />
-                  <span>Registro de Accesos</span>
+                  <span>Historial de Accesos</span>
                 </CardTitle>
-                <CardDescription>Historial de quién ha accedido a tu información médica</CardDescription>
+                <CardDescription>Registro completo de intentos de acceso a tu información médica</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {accesos.map((acceso) => (
-                    <div
-                      key={acceso.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                          {acceso.tipo === "consulta" && <Eye className="w-5 h-5 text-purple-600" />}
-                          {acceso.tipo === "descarga" && <Download className="w-5 h-5 text-purple-600" />}
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">{acceso.profesional}</h4>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <span className="flex items-center">
-                              <Hospital className="w-3 h-3 mr-1" />
-                              {acceso.clinica}
-                            </span>
-                            <span className="flex items-center">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {acceso.fecha}
-                            </span>
+                {logsDeAcceso.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Eye className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No hay registros de accesos aún</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {logsDeAcceso.map((log, index) => (
+                      <div
+                        key={index}
+                        className={`p-4 border rounded-lg ${
+                          log.resultado
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-red-50 border-red-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-4 flex-1">
+                            <div
+                              className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                log.resultado
+                                  ? 'bg-green-100'
+                                  : 'bg-red-100'
+                              }`}
+                            >
+                              {log.resultado ? (
+                                <CheckCircle className={`w-5 h-5 ${
+                                  log.resultado ? 'text-green-600' : 'text-red-600'
+                                }`} />
+                              ) : (
+                                <AlertCircle className="w-5 h-5 text-red-600" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">
+                                {log.profesionalNombre} {log.profesionalApellido}
+                              </h4>
+                              <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                <span className="flex items-center">
+                                  <Hospital className="w-3 h-3 mr-1" />
+                                  {log.centroNombre}
+                                </span>
+                                <span className="flex items-center">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  {new Date(log.fechaAcceso).toLocaleDateString('es-UY', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 italic">{log.motivo}</p>
+                            </div>
                           </div>
+                          <Badge
+                            variant={log.resultado ? 'default' : 'destructive'}
+                            className="text-xs"
+                          >
+                            {log.resultado ? 'AUTORIZADO' : 'DENEGADO'}
+                          </Badge>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {acceso.tipo}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
