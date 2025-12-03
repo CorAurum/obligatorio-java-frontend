@@ -211,20 +211,8 @@ export default function AdminHCENPortal() {
 
   const handleToggleAdminStatus = async (admin: Administrador) => {
     try {
-      const response = await fetch(`/api/admin/administradores/${admin.id}/toggle-status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ activo: !admin.activo }),
-      })
+      await backendAPI.desactivarAdministrador(admin.id)
 
-      if (!response.ok) {
-        throw new Error('Failed to toggle admin status')
-      }
-
-      const updatedAdmin = await response.json()
-      setAdministradores(administradores.map(a => a.id === admin.id ? updatedAdmin : a))
     } catch (error) {
       console.error('Error toggling admin status:', error)
       alert('Error al cambiar el estado del administrador')
