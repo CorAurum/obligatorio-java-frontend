@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { backendAPI, DocumentoClinicoDTO, PoliticaDeAccesoDTO } from '@/lib/api/backend';
 import NotificacionesDropdown from '@/components/NotificacionesDropdown';
+import CrearPoliticaDialog from '@/components/CrearPoliticaDialog';
 
 interface AccesoHistoria {
   id: string
@@ -47,6 +48,18 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
   const cedula = userInfo?.numeroDocumento || userInfo?.numero_documento || userInfo?.document?.number || userInfo?.sub || userInfo?.id;
 
   console.log('Extracted cedula:', cedula);
+
+  // Recargar políticas
+  const recargarPoliticas = async () => {
+    if (!usuarioId) return;
+
+    try {
+      const politicasData = await backendAPI.getPoliticasAcceso(usuarioId);
+      setPoliticas(politicasData);
+    } catch (err) {
+      console.error('Error recargando políticas:', err);
+    }
+  };
 
   // Handle revocar política
   const handleRevocarPolitica = async (politicaId: string) => {
@@ -355,11 +368,16 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
           <TabsContent value="politicas" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="w-5 h-5" />
-                  <span>Gestión de Políticas de Acceso</span>
-                </CardTitle>
-                <CardDescription>Controla quién puede acceder a tu información médica</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Shield className="w-5 h-5" />
+                      <span>Gestión de Políticas de Acceso</span>
+                    </CardTitle>
+                    <CardDescription>Controla quién puede acceder a tu información médica</CardDescription>
+                  </div>
+                  {usuarioId && <CrearPoliticaDialog usuarioId={usuarioId} onPoliticaCreada={recargarPoliticas} />}
+                </div>
               </CardHeader>
               <CardContent>
                 {politicas.length === 0 ? (
