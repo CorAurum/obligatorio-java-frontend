@@ -332,7 +332,7 @@ export default function AdminHCENPortal() {
                           </CardTitle>
                           <CardDescription>{clinica.tipoInstitucion}</CardDescription>
                         </div>
-                        <Badge className={clinica.estado === 'ACTIVO' ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>
+                        <Badge className={clinica.estado === 'ACTIVO' || clinica.estado === 'HABILITADO' || !clinica.estado ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>
                           {clinica.estado || 'ACTIVO'}
                         </Badge>
                       </div>
@@ -350,12 +350,12 @@ export default function AdminHCENPortal() {
                           </p>
                         )}
                         <Button
-                          variant={clinica.estado === 'ACTIVO' ? "outline" : "default"}
+                          variant={(clinica.estado === 'ACTIVO' || clinica.estado === 'HABILITADO' || !clinica.estado) ? "outline" : "default"}
                           size="sm"
                           onClick={() => handleToggleClinicaStatus(clinica)}
                           className="w-full"
                         >
-                          {clinica.estado === 'ACTIVO' ? 'Inhabilitar Clínica' : 'Habilitar Clínica'}
+                          {(clinica.estado === 'ACTIVO' || clinica.estado === 'HABILITADO' || !clinica.estado) ? 'Deshabilitar Clínica' : 'Habilitar Clínica'}
                         </Button>
                       </div>
                     </CardContent>
@@ -711,7 +711,7 @@ export default function AdminHCENPortal() {
               <p className="text-muted-foreground">Resumen general del sistema HCEN</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
