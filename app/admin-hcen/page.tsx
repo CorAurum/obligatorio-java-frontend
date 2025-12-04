@@ -214,6 +214,23 @@ export default function AdminHCENPortal() {
     }
   }
 
+  const handleToggleClinicaStatus = async (clinica: CentroDeSalud) => {
+    const accion = clinica.estado === 'ACTIVO' ? 'inhabilitar' : 'habilitar'
+    if (!confirm(`¿Está seguro de que desea ${accion} la clínica "${clinica.nombre}"?`)) {
+      return
+    }
+
+    try {
+      const clinicaActualizada = await backendAPI.toggleCentroDeSalud(clinica.id)
+
+      // Update local state with the updated clinica
+      setClinicas(clinicas.map(c => c.id === clinica.id ? clinicaActualizada : c))
+    } catch (error) {
+      console.error('Error toggling clinica status:', error)
+      alert('Error al cambiar el estado de la clínica')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -307,14 +324,21 @@ export default function AdminHCENPortal() {
                 clinicas.map((clinica) => (
                   <Card key={clinica.id}>
                     <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Hospital className="w-5 h-5" />
-                        <span>{clinica.nombre}</span>
-                      </CardTitle>
-                      <CardDescription>{clinica.tipoInstitucion}</CardDescription>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Hospital className="w-5 h-5" />
+                            <span>{clinica.nombre}</span>
+                          </CardTitle>
+                          <CardDescription>{clinica.tipoInstitucion}</CardDescription>
+                        </div>
+                        <Badge className={clinica.estado === 'ACTIVO' ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>
+                          {clinica.estado || 'ACTIVO'}
+                        </Badge>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-3 text-sm">
                         {clinica.direccion && (
                           <p className="text-muted-foreground">
                             <strong>Dirección:</strong> {clinica.direccion}
@@ -325,9 +349,14 @@ export default function AdminHCENPortal() {
                             <strong>Teléfono:</strong> {clinica.telefono}
                           </p>
                         )}
-                        <Badge className="mt-2 bg-green-100 text-green-800 border-green-200">
-                          Activo
-                        </Badge>
+                        <Button
+                          variant={clinica.estado === 'ACTIVO' ? "outline" : "default"}
+                          size="sm"
+                          onClick={() => handleToggleClinicaStatus(clinica)}
+                          className="w-full"
+                        >
+                          {clinica.estado === 'ACTIVO' ? 'Inhabilitar Clínica' : 'Habilitar Clínica'}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -641,8 +670,8 @@ export default function AdminHCENPortal() {
                             <Users className="w-5 h-5" />
                             <span>{prof.nombres} {prof.apellidos}</span>
                           </CardTitle>
-                          {prof.numeroRegistro && (
-                            <CardDescription className="mt-1">Reg: {prof.numeroRegistro}</CardDescription>
+                          {prof.centroDeSalud?.nombre && (
+                            <CardDescription className="mt-1">Clínica: {prof.centroDeSalud.nombre}</CardDescription>
                           )}
                         </div>
                         <Badge className={prof.estado === 'ACTIVO' ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>

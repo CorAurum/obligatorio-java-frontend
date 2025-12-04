@@ -349,6 +349,23 @@ class BackendAPI {
   }
 
   /**
+   * Toggle centro de salud status (habilitar/inhabilitar)
+   */
+  async toggleCentroDeSalud(clinicaId: string, token?: string): Promise<CentroDeSalud> {
+    const response = await fetch(`${this.baseURL}/api/CentroDeSalud/${clinicaId}/inhabilitar`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error cambiando estado de centro de salud: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  /**
    * Get all administradores
    */
   async getAdministradores(token?: string): Promise<Administrador[]> {

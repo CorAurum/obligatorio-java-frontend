@@ -44,17 +44,24 @@ export default function CrearClinicaPage() {
       }
 
       const userInfo = await userResponse.json()
-      const cedula = userInfo?.numero_documento
+      console.log('UserInfo:', userInfo) // Debug log
+
+      const cedula = userInfo?.numero_documento || userInfo?.cedula || userInfo?.ci
 
       if (!cedula) {
-        throw new Error('No se encontró la cédula del administrador')
+        console.error('UserInfo completo:', JSON.stringify(userInfo, null, 2))
+        throw new Error(`No se encontró la cédula del administrador en userInfo. Campos disponibles: ${Object.keys(userInfo).join(', ')}`)
       }
+
+      console.log('Buscando admin con cédula:', cedula) // Debug log
 
       // Get admin ID
       const admin = await backendAPI.checkIsAdmin(cedula)
       if (!admin) {
-        throw new Error('Usuario no autorizado')
+        throw new Error(`Usuario con cédula ${cedula} no está registrado como administrador`)
       }
+
+      console.log('Admin encontrado:', admin) // Debug log
 
       // Create centro de salud
       await backendAPI.crearCentroDeSalud(formData, admin.id)
