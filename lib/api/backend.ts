@@ -3,12 +3,36 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/CompC-1.0-SNAPSHOT';
 
 export interface DocumentoClinicoDTO {
+  id?: string;
   fechaCreacion: string;
   area: string;
   descripcion: string;
   urlAlojamiento: string;
   profesionalNombre: string;
   profesionalApellido: string;
+}
+
+export interface MotivoConsulta {
+  motivo: string;
+}
+
+export interface Diagnostico {
+  descripcion: string;
+  fechaInicio: string;
+  estado: string;
+  gradoCerteza: string;
+}
+
+export interface DocumentoClinicoDetalle {
+  idClinica: number;
+  cedulaUsuario: string;
+  idProfesional: number;
+  fechaProximaConsultaRecomendada: string | null;
+  fechaProximaConsultaConfirmada: string | null;
+  areaProximoControl: string | null;
+  area: string;
+  motivosConsulta: MotivoConsulta[];
+  diagnosticos: Diagnostico[];
 }
 
 export interface PoliticaDeAccesoDTO {
@@ -171,6 +195,22 @@ class BackendAPI {
 
     if (!response.ok) {
       throw new Error(`Error fetching documentos: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get detailed information of a clinical document
+   */
+  async getDocumentoClinicoDetalle(documentoId: string, token?: string): Promise<DocumentoClinicoDetalle> {
+    const response = await fetch(`${this.baseURL}/api/documentoClinico/${documentoId}/detalle`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching documento detalle: ${response.statusText}`);
     }
 
     return response.json();

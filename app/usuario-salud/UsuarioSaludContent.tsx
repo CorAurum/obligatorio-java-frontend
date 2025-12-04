@@ -24,6 +24,7 @@ import { backendAPI, DocumentoClinicoDTO, PoliticaDeAccesoDTO, SolicitudDeAcceso
 import NotificacionesDropdown from '@/components/NotificacionesDropdown';
 import CrearPoliticaDialog from '@/components/CrearPoliticaDialog';
 import SolicitudesAccesoCard from '@/components/SolicitudesAccesoCard';
+import { DetalleDocumentoDialog } from '@/components/DetalleDocumentoDialog';
 
 interface AccesoHistoria {
   id: string
@@ -42,6 +43,8 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
   const [error, setError] = useState<string | null>(null);
   const [revocando, setRevocando] = useState<string | null>(null);
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const [documentoDetalleId, setDocumentoDetalleId] = useState<string | null>(null);
+  const [showDetalleDialog, setShowDetalleDialog] = useState(false);
 
   // Debug: log the userInfo to see what we have
   console.log('UsuarioSaludContent userInfo:', userInfo);
@@ -365,6 +368,17 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Disponible
                           </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDocumentoDetalleId(doc.id || `${index}`)
+                              setShowDetalleDialog(true)
+                            }}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Detalles
+                          </Button>
                           {doc.urlAlojamiento && (
                             <>
                               <Button
@@ -583,6 +597,15 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal de Detalle de Documento */}
+      {documentoDetalleId && (
+        <DetalleDocumentoDialog
+          documentoId={documentoDetalleId}
+          open={showDetalleDialog}
+          onOpenChange={setShowDetalleDialog}
+        />
+      )}
     </div>
   )
 }
