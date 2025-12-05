@@ -204,7 +204,7 @@ class BackendAPI {
    * Get detailed information of a clinical document
    */
   async getDocumentoClinicoDetalle(documentoId: string, token?: string): Promise<DocumentoClinicoDetalle> {
-    const url = `${this.baseURL}/api/documentoClinico/c60e3735-891b-42b4-847b-b20ca77dadaa/detalle`;
+    const url = `${this.baseURL}/api/documentoClinico/${documentoId}/detalle`;
     console.log('Fetching from URL:', url);
 
     const response = await fetch(url, {
