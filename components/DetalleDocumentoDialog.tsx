@@ -20,12 +20,20 @@ export function DetalleDocumentoDialog({ documentoId, open, onOpenChange }: Deta
   const [error, setError] = useState<string | null>(null)
 
   const cargarDetalle = async () => {
-    if (!documentoId) return
+    if (!documentoId) {
+      console.log('No hay documentoId')
+      return
+    }
 
+    console.log('Cargando detalle para documentoId:', documentoId)
     setLoading(true)
     setError(null)
     try {
       const data = await backendAPI.getDocumentoClinicoDetalle(documentoId)
+      console.log('Datos recibidos:', data)
+      console.log('¿Tiene tenant?', data.tenant)
+      console.log('¿Tiene profesional?', data.profesional)
+      console.log('¿Tiene documento?', data.documento)
       setDetalle(data)
     } catch (err) {
       console.error('Error loading documento detalle:', err)
@@ -107,8 +115,15 @@ export function DetalleDocumentoDialog({ documentoId, open, onOpenChange }: Deta
           </div>
         )}
 
+        {!loading && !error && !detalle && (
+          <div className="text-center py-8 text-muted-foreground">
+            No hay datos para mostrar
+          </div>
+        )}
+
         {detalle && !loading && (
           <div className="space-y-6">
+            {console.log('Renderizando detalle:', detalle)}
             {/* Información del Tenant y Profesional */}
             <div className="grid grid-cols-2 gap-4">
               <Card>
