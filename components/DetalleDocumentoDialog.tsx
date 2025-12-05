@@ -34,7 +34,12 @@ export function DetalleDocumentoDialog({ documentoId, open, onOpenChange }: Deta
       console.log('¿Tiene tenant?', data.tenant)
       console.log('¿Tiene profesional?', data.profesional)
       console.log('¿Tiene documento?', data.documento)
+      if (data.documento) {
+        console.log('Motivos de consulta:', data.documento.motivosConsulta)
+        console.log('Diagnósticos:', data.documento.diagnosticos)
+      }
       setDetalle(data)
+      console.log('Detalle guardado en estado')
     } catch (err) {
       console.error('Error loading documento detalle:', err)
       setError('Error al cargar los detalles del documento')
@@ -123,7 +128,6 @@ export function DetalleDocumentoDialog({ documentoId, open, onOpenChange }: Deta
 
         {detalle && !loading && (
           <div className="space-y-6">
-            {console.log('Renderizando detalle:', detalle)}
             {/* Información del Tenant y Profesional */}
             <div className="grid grid-cols-2 gap-4">
               <Card>
