@@ -22,7 +22,7 @@ Create a `.env.local` file in the root directory and configure the following OID
 
 ## Getting Started
 
-First, install dependencies and run the development server:
+First, install dependencies anad ruasdasdan the development server:
 
 ```bash
 npm install
