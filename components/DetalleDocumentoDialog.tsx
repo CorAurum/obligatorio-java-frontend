@@ -20,16 +20,21 @@ export function DetalleDocumentoDialog({ documentoId, open, onOpenChange }: Deta
   const [error, setError] = useState<string | null>(null)
 
   const cargarDetalle = async () => {
-    if (!documentoId || detalle) return // Solo cargar si no tenemos datos
+    if (!documentoId || detalle) {
+      console.log('No cargar detalle. documentoId:', documentoId, 'detalle existe?:', !!detalle)
+      return // Solo cargar si no tenemos datos
+    }
 
+    console.log('Cargando detalle del documento con ID:', documentoId)
     setLoading(true)
     setError(null)
     try {
       const data = await backendAPI.getDocumentoClinicoDetalle(documentoId)
+      console.log('Datos recibidos del API:', data)
       setDetalle(data)
     } catch (err) {
       console.error('Error loading documento detalle:', err)
-      setError('Error al cargar los detalles del documento')
+      setError(`Error al cargar los detalles del documento: ${err instanceof Error ? err.message : 'Error desconocido'}`)
     } finally {
       setLoading(false)
     }
