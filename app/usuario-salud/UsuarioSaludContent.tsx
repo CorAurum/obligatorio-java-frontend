@@ -147,12 +147,6 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
         setDocumentos(data.documentos);
         setPoliticas(data.politicas);
         setError(null);
-
-        // Debug: log documentos
-        console.log('Documentos cargados:', data.documentos);
-        if (data.documentos && data.documentos.length > 0) {
-          console.log('Primer documento:', data.documentos[0]);
-        }
       } catch (err) {
         console.error('Error fetching data:', err);
         if (err instanceof Error) {
@@ -378,11 +372,7 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const docId = doc.documentoId || `${index}`
-                              console.log('Documento completo:', doc)
-                              console.log('ID del documento:', docId)
-                              console.log('¿Tiene doc.documentoId?', doc.documentoId)
-                              setDocumentoDetalleId(docId)
+                              setDocumentoDetalleId(doc.documentoId || `${index}`)
                               setShowDetalleDialog(true)
                             }}
                           >
@@ -403,10 +393,12 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  const link = document.createElement('a');
-                                  link.href = doc.urlAlojamiento;
-                                  link.download = `documento-${doc.area}.pdf`;
-                                  link.click();
+                                  if (doc.urlAlojamiento) {
+                                    const link = document.createElement('a');
+                                    link.href = doc.urlAlojamiento;
+                                    link.download = `documento-${doc.area}.pdf`;
+                                    link.click();
+                                  }
                                 }}
                               >
                                 <Download className="w-4 h-4 mr-2" />
