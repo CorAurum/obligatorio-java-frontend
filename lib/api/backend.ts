@@ -12,27 +12,27 @@ export interface DocumentoClinicoDTO {
   profesionalApellido: string;
 }
 
-export interface MotivoConsulta {
-  motivo: string;
-}
-
 export interface Diagnostico {
   descripcion: string;
-  fechaInicio: string;
-  estado: string;
+  estadoProblema: string;
   gradoCerteza: string;
 }
 
-export interface DocumentoClinicoDetalle {
-  idClinica: number;
-  cedulaUsuario: string;
-  idProfesional: number;
-  fechaProximaConsultaRecomendada: string | null;
-  fechaProximaConsultaConfirmada: string | null;
-  areaProximoControl: string | null;
+export interface Documento {
   area: string;
-  motivosConsulta: MotivoConsulta[];
+  titulo: string;
+  descripcion: string;
+  tipoDocumento: string;
+  fechaCreacion: string;
+  fechaProximaConsultaConfirmada: string | null;
+  motivosConsulta: string[];
   diagnosticos: Diagnostico[];
+}
+
+export interface DocumentoClinicoDetalle {
+  tenant: string;
+  profesional: string;
+  documento: Documento;
 }
 
 export interface PoliticaDeAccesoDTO {
