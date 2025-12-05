@@ -20,7 +20,7 @@ export function DetalleDocumentoDialog({ documentoId, open, onOpenChange }: Deta
   const [error, setError] = useState<string | null>(null)
 
   const cargarDetalle = async () => {
-    if (!documentoId || detalle) return // Solo cargar si no tenemos datos
+    if (!documentoId) return
 
     setLoading(true)
     setError(null)
@@ -37,11 +37,10 @@ export function DetalleDocumentoDialog({ documentoId, open, onOpenChange }: Deta
 
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
-      cargarDetalle()
-    } else {
-      // Reset state when closing
+      // Reset state and load new data when opening
       setDetalle(null)
       setError(null)
+      cargarDetalle()
     }
     onOpenChange(newOpen)
   }
