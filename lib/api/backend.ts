@@ -204,16 +204,30 @@ class BackendAPI {
    * Get detailed information of a clinical document
    */
   async getDocumentoClinicoDetalle(documentoId: string, token?: string): Promise<DocumentoClinicoDetalle> {
-    const response = await fetch(`${this.baseURL}/api/documentoClinico/${documentoId}/detalle`, {
+    const url = `${this.baseURL}/api/documentoClinico/${documentoId}/detalle`;
+    console.log('Fetching from URL:', url);
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: this.getAuthHeaders(token),
     });
 
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
     if (!response.ok) {
-      throw new Error(`Error fetching documento detalle: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Error response body:', errorText);
+      throw new Error(`Error fetching documento detalle: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    return response.json();
+    const rawData = await response.text();
+    console.log('Raw response:', rawData);
+
+    const data = JSON.parse(rawData);
+    console.log('Parsed data:', data);
+
+    return data;
   }
 
   /**
