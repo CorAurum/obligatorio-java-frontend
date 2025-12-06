@@ -52,6 +52,12 @@ export async function GET(request: NextRequest) {
         backendAPI.getDocumentosClinicos(resolvedId, token),
         backendAPI.getPoliticasAcceso(resolvedId, token),
       ]);
+
+      // DEBUG: Log documentos to verify documentoId
+      console.log('📄 Documentos recibidos del backend:');
+      documentos.forEach((doc, idx) => {
+        console.log(`  [${idx}] documentoId: ${doc.documentoId}, area: ${doc.area}, descripcion: ${doc.descripcion}`);
+      });
     } catch (usuarioError) {
       // If usuario lookup fails, try admin lookup
       console.log('Usuario lookup failed, trying admin lookup:', usuarioError);

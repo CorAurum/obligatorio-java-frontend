@@ -143,6 +143,12 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
         }
 
         const data = await response.json();
+        console.log('📥 Data recibida en UsuarioSaludContent:');
+        console.log('  usuarioId:', data.usuarioId);
+        console.log('  documentos:', data.documentos);
+        data.documentos?.forEach((doc: any, idx: number) => {
+          console.log(`    [${idx}] documentoId="${doc.documentoId}", area="${doc.area}"`);
+        });
         setUsuarioId(data.usuarioId);
         setDocumentos(data.documentos);
         setPoliticas(data.politicas);
@@ -372,7 +378,13 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              setDocumentoDetalleId(doc.documentoId || `${index}`)
+                              console.log('🔍 Click en botón Detalles:');
+                              console.log('  doc completo:', doc);
+                              console.log('  doc.documentoId:', doc.documentoId);
+                              console.log('  index:', index);
+                              const idToUse = doc.documentoId || `${index}`;
+                              console.log('  ID que se va a usar:', idToUse);
+                              setDocumentoDetalleId(idToUse)
                               setShowDetalleDialog(true)
                             }}
                           >
@@ -601,13 +613,11 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
       </div>
 
       {/* Modal de Detalle de Documento */}
-      {documentoDetalleId && (
-        <DetalleDocumentoDialog
-          documentoId={documentoDetalleId}
-          open={showDetalleDialog}
-          onOpenChange={setShowDetalleDialog}
-        />
-      )}
+      <DetalleDocumentoDialog
+        documentoId={documentoDetalleId}
+        open={showDetalleDialog}
+        onOpenChange={setShowDetalleDialog}
+      />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,7 +9,7 @@ import { backendAPI, DocumentoClinicoDetalle } from "@/lib/api/backend"
 import { FileText, Calendar, Activity, Stethoscope, Hospital, User } from "lucide-react"
 
 interface DetalleDocumentoDialogProps {
-  documentoId: string
+  documentoId: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -21,40 +21,46 @@ export function DetalleDocumentoDialog({ documentoId, open, onOpenChange }: Deta
 
   const cargarDetalle = async () => {
     if (!documentoId) {
-      console.log('No hay documentoId')
+      console.log('❌ No hay documentoId, no se puede cargar detalle')
       return
     }
 
-    console.log('Cargando detalle para documentoId:', documentoId)
+    console.log('🔄 Cargando detalle para documentoId:', documentoId)
     setLoading(true)
     setError(null)
     try {
       const data = await backendAPI.getDocumentoClinicoDetalle(documentoId)
-      console.log('Datos recibidos:', data)
-      console.log('¿Tiene tenant?', data.tenant)
-      console.log('¿Tiene profesional?', data.profesional)
-      console.log('¿Tiene documento?', data.documento)
+      console.log('✅ Datos recibidos:', data)
+      console.log('  - Tenant:', data.tenant)
+      console.log('  - Profesional:', data.profesional)
+      console.log('  - Documento:', data.documento)
       if (data.documento) {
-        console.log('Motivos de consulta:', data.documento.motivosConsulta)
-        console.log('Diagnósticos:', data.documento.diagnosticos)
+        console.log('  - Motivos de consulta:', data.documento.motivosConsulta)
+        console.log('  - Diagnósticos:', data.documento.diagnosticos)
       }
       setDetalle(data)
-      console.log('Detalle guardado en estado')
+      console.log('💾 Detalle guardado en estado')
     } catch (err) {
-      console.error('Error loading documento detalle:', err)
+      console.error('❌ Error loading documento detalle:', err)
       setError('Error al cargar los detalles del documento')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen) {
-      // Reset state and load new data when opening
+  // Efecto para cargar datos cuando el diálogo se abre
+  useEffect(() => {
+    console.log('📊 useEffect - open:', open, ', documentoId:', documentoId)
+    if (open && documentoId) {
+      console.log('✨ Diálogo abierto con documentoId válido, cargando detalle...')
       setDetalle(null)
       setError(null)
       cargarDetalle()
     }
+  }, [open, documentoId])
+
+  const handleOpenChange = (newOpen: boolean) => {
+    console.log('🔄 handleOpenChange:', newOpen)
     onOpenChange(newOpen)
   }
 
