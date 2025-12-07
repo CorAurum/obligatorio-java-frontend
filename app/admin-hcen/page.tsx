@@ -777,9 +777,7 @@ export default function AdminHCENPortal() {
                         <p className="text-muted-foreground">
                           <strong>Email:</strong> {admin.email}
                         </p>
-                        <p className="text-muted-foreground">
-                          <strong>Usuario:</strong> {admin.usuario}
-                        </p>
+
                         {admin.cedula && (
                           <p className="text-muted-foreground">
                             <strong>Cédula:</strong> {admin.cedula}
