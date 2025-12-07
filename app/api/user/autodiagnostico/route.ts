@@ -24,14 +24,14 @@ interface SessionData {
 
 // POST /api/user/autodiagnostico
 export async function POST(request: NextRequest) {
-  const session = await getIronSession<SessionData>(await cookies(), {
-    password: process.env.SESSION_SECRET || 'a4b23d96f8d3e44f8f40d61c12b5a9d057e0dba5cf871e2fd41f6b033a1c8b67',
-    cookieName: 'auth-session',
-  });
+  // const session = await getIronSession<SessionData>(await cookies(), {
+  //   password: process.env.SESSION_SECRET || 'a4b23d96f8d3e44f8f40d61c12b5a9d057e0dba5cf871e2fd41f6b033a1c8b67',
+  //   cookieName: 'auth-session',
+  // });
 
-  if (!session.isLoggedIn || !session.user?.access_token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  // if (!session.isLoggedIn || !session.user?.access_token) {
+  //   return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  // }
 
   try {
     const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
