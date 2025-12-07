@@ -66,6 +66,29 @@ export interface Administrador {
   activo: boolean;
 }
 
+export interface AdministradorDeClinica {
+  id: number;
+  nombre: string;
+  apellido: string;
+  cedula: string | null;
+  email: string;
+  usuario: string;
+  activo: boolean;
+  clinica: string;
+  creadorPor: string;
+}
+
+export interface CrearAdministradorClinicaRequest {
+  dominioSubdominio: string;
+  administrador: {
+    nombre: string;
+    apellido: string;
+    email: string;
+    usuario: string;
+    creadorPor: string;
+  };
+}
+
 export interface CentroDeSalud {
   id: string;
   nombre: string;
@@ -663,6 +686,42 @@ class BackendAPI {
 
     if (!response.ok) {
       throw new Error(`Error fetching logs de acceso: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get all administradores de clínica (from peripheral component)
+   */
+  async getAdministradoresDeClinica(token?: string): Promise<AdministradorDeClinica[]> {
+    const perifericoURL = process.env.NEXT_PUBLIC_PERIFERICO_API_URL || 'https://p1.enbondi.xyz';
+    const response = await fetch(`${perifericoURL}/api/administradores/todos`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching administradores de clínica: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Create a new administrador de clínica (in peripheral component)
+   */
+  async crearAdministradorDeClinica(request: CrearAdministradorClinicaRequest, token?: string): Promise<AdministradorDeClinica> {
+    const perifericoURL = process.env.NEXT_PUBLIC_PERIFERICO_API_URL || 'https://p1.enbondi.xyz';
+    const response = await fetch(`${perifericoURL}/api/administradores`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error creando administrador de clínica: ${error}`);
     }
 
     return response.json();

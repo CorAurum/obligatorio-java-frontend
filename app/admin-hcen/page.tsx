@@ -29,13 +29,14 @@ import {
   Power,
   User,
 } from "lucide-react"
-import { backendAPI, type CentroDeSalud, type Especialidad, type Administrador, type Usuario, type ProfesionalDeSalud } from "@/lib/api/backend"
+import { backendAPI, type CentroDeSalud, type Especialidad, type Administrador, type Usuario, type ProfesionalDeSalud, type AdministradorDeClinica } from "@/lib/api/backend"
 
 export default function AdminHCENPortal() {
   const [selectedTab, setSelectedTab] = useState("clinicas")
   const [clinicas, setClinicas] = useState<CentroDeSalud[]>([])
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([])
   const [administradores, setAdministradores] = useState<Administrador[]>([])
+  const [administradoresClinica, setAdministradoresClinica] = useState<AdministradorDeClinica[]>([])
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [profesionales, setProfesionales] = useState<ProfesionalDeSalud[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,6 +60,17 @@ export default function AdminHCENPortal() {
     activo: true,
   })
 
+  // Dialog state for creating administrador de clínica
+  const [showAdminClinicaDialog, setShowAdminClinicaDialog] = useState(false)
+  const [creatingAdminClinica, setCreatingAdminClinica] = useState(false)
+  const [adminClinicaForm, setAdminClinicaForm] = useState({
+    nombre: "",
+    apellido: "",
+    email: "",
+    usuario: "",
+    clinicaNombre: "",
+  })
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -78,6 +90,14 @@ export default function AdminHCENPortal() {
           setAdministradores(adminData.administradores || [])
           setUsuarios(adminData.usuarios || [])
           setProfesionales(adminData.profesionales || [])
+        }
+
+        // Load administradores de clínica from peripheral component
+        try {
+          const adminsClinica = await backendAPI.getAdministradoresDeClinica()
+          setAdministradoresClinica(adminsClinica)
+        } catch (error) {
+          console.error('Error loading administradores de clínica:', error)
         }
       } catch (error) {
         console.error('Error loading data:', error)
@@ -231,6 +251,47 @@ export default function AdminHCENPortal() {
     }
   }
 
+  const handleCrearAdminClinica = async () => {
+    if (!adminClinicaForm.nombre.trim() || !adminClinicaForm.apellido.trim() ||
+        !adminClinicaForm.email.trim() || !adminClinicaForm.usuario.trim() ||
+        !adminClinicaForm.clinicaNombre.trim()) {
+      alert('Por favor complete todos los campos')
+      return
+    }
+
+    setCreatingAdminClinica(true)
+    try {
+      // Convert clinic name to dominioSubdominio (lowercase, no spaces)
+      const dominioSubdominio = adminClinicaForm.clinicaNombre.toLowerCase().replace(/\s+/g, '')
+
+      const nuevoAdmin = await backendAPI.crearAdministradorDeClinica({
+        dominioSubdominio,
+        administrador: {
+          nombre: adminClinicaForm.nombre,
+          apellido: adminClinicaForm.apellido,
+          email: adminClinicaForm.email,
+          usuario: adminClinicaForm.usuario,
+          creadorPor: 'system',
+        },
+      })
+
+      setAdministradoresClinica([...administradoresClinica, nuevoAdmin])
+      setAdminClinicaForm({
+        nombre: "",
+        apellido: "",
+        email: "",
+        usuario: "",
+        clinicaNombre: "",
+      })
+      setShowAdminClinicaDialog(false)
+    } catch (error) {
+      console.error('Error creating admin clinica:', error)
+      alert('Error al crear el administrador de clínica')
+    } finally {
+      setCreatingAdminClinica(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -288,10 +349,11 @@ export default function AdminHCENPortal() {
 
       <div className="container mx-auto px-6 py-8">
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="clinicas">Clínicas</TabsTrigger>
             <TabsTrigger value="especialidades">Especialidades</TabsTrigger>
             <TabsTrigger value="administradores">Administradores</TabsTrigger>
+            <TabsTrigger value="admins-clinica">Admins Clínica</TabsTrigger>
             <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
             <TabsTrigger value="profesionales">Profesionales</TabsTrigger>
             <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
@@ -602,6 +664,148 @@ export default function AdminHCENPortal() {
             </div>
           </TabsContent>
 
+          {/* Administradores de Clínica Tab */}
+          <TabsContent value="admins-clinica" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">Administradores de Clínica</h2>
+                <p className="text-muted-foreground">Gestión de administradores de centros de salud periféricos</p>
+              </div>
+              <Dialog open={showAdminClinicaDialog} onOpenChange={setShowAdminClinicaDialog}>
+                <DialogTrigger asChild>
+                  <Button size="lg">
+                    <Plus className="w-5 h-5 mr-2" />
+                    Nuevo Admin Clínica
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Crear Administrador de Clínica</DialogTitle>
+                    <DialogDescription>
+                      Agrega un nuevo administrador para un centro de salud periférico
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nombre-clinica">Nombre *</Label>
+                        <Input
+                          id="nombre-clinica"
+                          placeholder="Juan"
+                          value={adminClinicaForm.nombre}
+                          onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, nombre: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="apellido-clinica">Apellido *</Label>
+                        <Input
+                          id="apellido-clinica"
+                          placeholder="Pérez"
+                          value={adminClinicaForm.apellido}
+                          onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, apellido: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email-clinica">Email *</Label>
+                      <Input
+                        id="email-clinica"
+                        type="email"
+                        placeholder="admin@clinica.com"
+                        value={adminClinicaForm.email}
+                        onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="usuario-clinica">Usuario *</Label>
+                      <Input
+                        id="usuario-clinica"
+                        placeholder="admin_usuario"
+                        value={adminClinicaForm.usuario}
+                        onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, usuario: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="clinica-nombre">Nombre de Clínica *</Label>
+                      <Input
+                        id="clinica-nombre"
+                        placeholder="Ej: Clinica Central"
+                        value={adminClinicaForm.clinicaNombre}
+                        onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, clinicaNombre: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        El dominio/subdominio se generará automáticamente (minúsculas sin espacios)
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAdminClinicaDialog(false)}
+                      disabled={creatingAdminClinica}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleCrearAdminClinica}
+                      disabled={creatingAdminClinica}
+                    >
+                      {creatingAdminClinica ? "Creando..." : "Crear"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {administradoresClinica.length === 0 ? (
+                <Card className="col-span-full">
+                  <CardContent className="p-12 text-center">
+                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No hay administradores de clínica registrados</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                administradoresClinica.map((admin) => (
+                  <Card key={admin.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Hospital className="w-5 h-5" />
+                            <span>{admin.nombre} {admin.apellido}</span>
+                          </CardTitle>
+                          <CardDescription className="mt-1">{admin.clinica}</CardDescription>
+                        </div>
+                        <Badge className={admin.activo ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>
+                          {admin.activo ? 'Activo' : 'Inactivo'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-muted-foreground">
+                          <strong>Email:</strong> {admin.email}
+                        </p>
+                        <p className="text-muted-foreground">
+                          <strong>Usuario:</strong> {admin.usuario}
+                        </p>
+                        {admin.cedula && (
+                          <p className="text-muted-foreground">
+                            <strong>Cédula:</strong> {admin.cedula}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Creado por: {admin.creadorPor}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
           {/* Usuarios Tab */}
           <TabsContent value="usuarios" className="space-y-6">
             <div>
@@ -749,6 +953,20 @@ export default function AdminHCENPortal() {
                     </div>
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                       <Shield className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Admins Clínica</p>
+                      <p className="text-2xl font-bold text-foreground">{administradoresClinica.filter(a => a.activo).length}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <Hospital className="w-6 h-6 text-cyan-600" />
                     </div>
                   </div>
                 </CardContent>
