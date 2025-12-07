@@ -18,7 +18,6 @@ export default function CrearClinicaPage() {
   const [success, setSuccess] = useState(false)
 
   const [formData, setFormData] = useState({
-    id: "",
     nombre: "",
     tipoInstitucion: "",
     direccion: "",
@@ -45,17 +44,24 @@ export default function CrearClinicaPage() {
       }
 
       const userInfo = await userResponse.json()
-      const cedula = userInfo?.numero_documento
+      console.log('UserInfo:', userInfo) // Debug log
+
+      const cedula = userInfo?.numero_documento || userInfo?.cedula || userInfo?.ci
 
       if (!cedula) {
-        throw new Error('No se encontró la cédula del administrador')
+        console.error('UserInfo completo:', JSON.stringify(userInfo, null, 2))
+        throw new Error(`No se encontró la cédula del administrador en userInfo. Campos disponibles: ${Object.keys(userInfo).join(', ')}`)
       }
+
+      console.log('Buscando admin con cédula:', cedula) // Debug log
 
       // Get admin ID
       const admin = await backendAPI.checkIsAdmin(cedula)
       if (!admin) {
-        throw new Error('Usuario no autorizado')
+        throw new Error(`Usuario con cédula ${cedula} no está registrado como administrador`)
       }
+
+      console.log('Admin encontrado:', admin) // Debug log
 
       // Create centro de salud
       await backendAPI.crearCentroDeSalud(formData, admin.id)
@@ -72,7 +78,7 @@ export default function CrearClinicaPage() {
     }
   }
 
-  const isFormValid = formData.id && formData.nombre && formData.tipoInstitucion
+  const isFormValid = formData.nombre && formData.tipoInstitucion
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,20 +128,6 @@ export default function CrearClinicaPage() {
                       <AlertDescription className="text-red-800">{error}</AlertDescription>
                     </Alert>
                   )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="id">ID de la Clínica *</Label>
-                    <Input
-                      id="id"
-                      placeholder="Ej: CENT004"
-                      value={formData.id}
-                      onChange={(e) => handleInputChange("id", e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Identificador único para la clínica (ej: CENT001, HOSP001)
-                    </p>
-                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="nombre">Nombre de la Clínica *</Label>

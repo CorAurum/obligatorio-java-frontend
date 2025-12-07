@@ -3,12 +3,36 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/CompC-1.0-SNAPSHOT';
 
 export interface DocumentoClinicoDTO {
+  documentoId?: string;
   fechaCreacion: string;
   area: string;
   descripcion: string;
-  urlAlojamiento: string;
+  urlAlojamiento?: string;
   profesionalNombre: string;
   profesionalApellido: string;
+}
+
+export interface Diagnostico {
+  descripcion: string;
+  estadoProblema: string;
+  gradoCerteza: string;
+}
+
+export interface Documento {
+  area: string;
+  titulo: string;
+  descripcion: string;
+  tipoDocumento: string;
+  fechaCreacion: string;
+  fechaProximaConsultaConfirmada: string | null;
+  motivosConsulta: string[];
+  diagnosticos: Diagnostico[];
+}
+
+export interface DocumentoClinicoDetalle {
+  tenant: string;
+  profesional: string;
+  documento: Documento;
 }
 
 export interface PoliticaDeAccesoDTO {
@@ -40,6 +64,29 @@ export interface Administrador {
   cedula: string;
   fechaAlta: string;
   activo: boolean;
+}
+
+export interface AdministradorDeClinica {
+  id: number;
+  nombre: string;
+  apellido: string;
+  cedula: string | null;
+  email: string;
+  usuario: string;
+  activo: boolean;
+  clinica: string;
+  creadorPor: string;
+}
+
+export interface CrearAdministradorClinicaRequest {
+  dominioSubdominio: string;
+  administrador: {
+    nombre: string;
+    apellido: string;
+    email: string;
+    usuario: string | null;
+    creadorPor: string;
+  };
 }
 
 export interface CentroDeSalud {
@@ -75,6 +122,35 @@ export interface ProfesionalDeSalud {
   fechaRegistroProfesional?: string;
   estado?: 'ACTIVO' | 'SUSPENDIDO';
   centroDeSalud?: CentroDeSalud;
+}
+
+export interface Notificacion {
+  id: number;
+  userId: string;
+  titulo: string;
+  mensaje: string;
+  tipo?: 'INFO' | 'ALERTA' | 'ACCESO' | 'POLITICA';
+  leida: boolean;
+  fechaCreacion: string;
+  fechaLectura?: string;
+}
+
+export interface SolicitudDeAcceso {
+  id: string;
+  solicitanteId: string;
+  fechaSolicitud: string;
+  estado: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA';
+  motivo: string;
+}
+
+export interface LogDeAcceso {
+  profesionalId: string;
+  profesionalNombre: string;
+  profesionalApellido: string;
+  centroNombre: string;
+  fechaAcceso: string;
+  resultado: boolean;
+  motivo: string;
 }
 
 class BackendAPI {
@@ -145,6 +221,36 @@ class BackendAPI {
     }
 
     return response.json();
+  }
+
+  /**
+   * Get detailed information of a clinical document
+   */
+  async getDocumentoClinicoDetalle(documentoId: string, token?: string): Promise<DocumentoClinicoDetalle> {
+    const url = `${this.baseURL}/api/documentoClinico/${documentoId}/detalle`;
+    console.log('Fetching from URL:', url);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response body:', errorText);
+      throw new Error(`Error fetching documento detalle: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const rawData = await response.text();
+    console.log('Raw response:', rawData);
+
+    const data = JSON.parse(rawData);
+    console.log('Parsed data:', data);
+
+    return data;
   }
 
   /**
@@ -320,6 +426,23 @@ class BackendAPI {
   }
 
   /**
+   * Toggle centro de salud status (habilitar/inhabilitar)
+   */
+  async toggleCentroDeSalud(clinicaId: string, token?: string): Promise<CentroDeSalud> {
+    const response = await fetch(`${this.baseURL}/api/CentroDeSalud/${clinicaId}/inhabilitar`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error cambiando estado de centro de salud: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  /**
    * Get all administradores
    */
   async getAdministradores(token?: string): Promise<Administrador[]> {
@@ -379,11 +502,11 @@ class BackendAPI {
   }
 
   /**
-   * Delete an administrador
+   * Change state from administrador
    */
-  async eliminarAdministrador(id: number, token?: string): Promise<void> {
-    const response = await fetch(`${this.baseURL}/api/administradores/${id}`, {
-      method: 'DELETE',
+  async desactivarAdministrador(id: number, token?: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/api/administradores/${id}/inhabilitar`, {
+      method: 'PUT',
       headers: this.getAuthHeaders(token),
     });
 
@@ -474,6 +597,149 @@ class BackendAPI {
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Error autodiagnóstico: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get new notifications for a user
+   */
+  async getNotificacionesNuevas(usuarioId: string, token?: string): Promise<Notificacion[]> {
+    const response = await fetch(`${this.baseURL}/api/notificaciones/nuevas/${usuarioId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching notificaciones nuevas: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get all notifications for a user
+   */
+  async getNotificacionesTodas(usuarioId: string, token?: string): Promise<Notificacion[]> {
+    const response = await fetch(`${this.baseURL}/api/notificaciones/todas/${usuarioId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching todas las notificaciones: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Mark notifications as read
+   */
+  async marcarNotificacionesLeidas(usuarioId: string, notificacionIds: number[], token?: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/api/notificaciones/marcar-leidas/${usuarioId}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(notificacionIds),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error marcando notificaciones como leídas: ${response.statusText}`);
+    }
+  }
+
+  /**
+   * Get pending access requests for a user
+   */
+  async getSolicitudesPendientes(usuarioId: string, token?: string): Promise<SolicitudDeAcceso[]> {
+    const response = await fetch(`${this.baseURL}/api/acceso/solicitudes/pendientes/${usuarioId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching solicitudes pendientes: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Approve an access request
+   */
+  async aprobarSolicitud(solicitudId: string, token?: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/api/acceso/solicitud/${solicitudId}/aprobar`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error aprobando solicitud: ${response.statusText}`);
+    }
+  }
+
+  /**
+   * Reject an access request
+   */
+  async rechazarSolicitud(solicitudId: string, token?: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/api/acceso/solicitud/${solicitudId}/rechazar`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error rechazando solicitud: ${response.statusText}`);
+    }
+  }
+
+  /**
+   * Get access logs for a user
+   */
+  async getLogsDeAcceso(usuarioId: string, token?: string): Promise<LogDeAcceso[]> {
+    const response = await fetch(`${this.baseURL}/api/accesos?usuarioId=${usuarioId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching logs de acceso: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get all administradores de clínica (from peripheral component)
+   */
+  async getAdministradoresDeClinica(token?: string): Promise<AdministradorDeClinica[]> {
+    const perifericoURL = process.env.NEXT_PUBLIC_PERIFERICO_API_URL || 'https://p1.enbondi.xyz';
+    const response = await fetch(`${perifericoURL}/api/administradores/todos`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching administradores de clínica: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Create a new administrador de clínica (in peripheral component)
+   */
+  async crearAdministradorDeClinica(request: CrearAdministradorClinicaRequest, token?: string): Promise<AdministradorDeClinica> {
+    const perifericoURL = process.env.NEXT_PUBLIC_PERIFERICO_API_URL || 'https://p1.enbondi.xyz';
+    const response = await fetch(`${perifericoURL}/api/administradores`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error creando administrador de clínica: ${error}`);
     }
 
     return response.json();

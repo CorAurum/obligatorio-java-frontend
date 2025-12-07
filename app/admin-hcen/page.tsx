@@ -29,13 +29,14 @@ import {
   Power,
   User,
 } from "lucide-react"
-import { backendAPI, type CentroDeSalud, type Especialidad, type Administrador, type Usuario, type ProfesionalDeSalud } from "@/lib/api/backend"
+import { backendAPI, type CentroDeSalud, type Especialidad, type Administrador, type Usuario, type ProfesionalDeSalud, type AdministradorDeClinica } from "@/lib/api/backend"
 
 export default function AdminHCENPortal() {
   const [selectedTab, setSelectedTab] = useState("clinicas")
   const [clinicas, setClinicas] = useState<CentroDeSalud[]>([])
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([])
   const [administradores, setAdministradores] = useState<Administrador[]>([])
+  const [administradoresClinica, setAdministradoresClinica] = useState<AdministradorDeClinica[]>([])
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [profesionales, setProfesionales] = useState<ProfesionalDeSalud[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,6 +60,16 @@ export default function AdminHCENPortal() {
     activo: true,
   })
 
+  // Dialog state for creating administrador de clínica
+  const [showAdminClinicaDialog, setShowAdminClinicaDialog] = useState(false)
+  const [creatingAdminClinica, setCreatingAdminClinica] = useState(false)
+  const [adminClinicaForm, setAdminClinicaForm] = useState({
+    nombre: "",
+    apellido: "",
+    email: "",
+    clinicaNombre: "",
+  })
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -78,6 +89,14 @@ export default function AdminHCENPortal() {
           setAdministradores(adminData.administradores || [])
           setUsuarios(adminData.usuarios || [])
           setProfesionales(adminData.profesionales || [])
+        }
+
+        // Load administradores de clínica from peripheral component
+        try {
+          const adminsClinica = await backendAPI.getAdministradoresDeClinica()
+          setAdministradoresClinica(adminsClinica)
+        } catch (error) {
+          console.error('Error loading administradores de clínica:', error)
         }
       } catch (error) {
         console.error('Error loading data:', error)
@@ -203,23 +222,74 @@ export default function AdminHCENPortal() {
 
   const handleToggleAdminStatus = async (admin: Administrador) => {
     try {
-      const response = await fetch(`/api/admin/administradores/${admin.id}/toggle-status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ activo: !admin.activo }),
-      })
+      await backendAPI.desactivarAdministrador(admin.id)
 
-      if (!response.ok) {
-        throw new Error('Failed to toggle admin status')
-      }
-
-      const updatedAdmin = await response.json()
+      // Update local state to toggle the active status
+      const updatedAdmin = { ...admin, activo: !admin.activo }
       setAdministradores(administradores.map(a => a.id === admin.id ? updatedAdmin : a))
     } catch (error) {
       console.error('Error toggling admin status:', error)
       alert('Error al cambiar el estado del administrador')
+    }
+  }
+
+  const handleToggleClinicaStatus = async (clinica: CentroDeSalud) => {
+    const accion = clinica.estado === 'ACTIVO' ? 'inhabilitar' : 'habilitar'
+    if (!confirm(`¿Está seguro de que desea ${accion} la clínica "${clinica.nombre}"?`)) {
+      return
+    }
+
+    try {
+      const clinicaActualizada = await backendAPI.toggleCentroDeSalud(clinica.id)
+
+      // Update local state with the updated clinica
+      setClinicas(clinicas.map(c => c.id === clinica.id ? clinicaActualizada : c))
+    } catch (error) {
+      console.error('Error toggling clinica status:', error)
+      alert('Error al cambiar el estado de la clínica')
+    }
+  }
+
+  const handleCrearAdminClinica = async () => {
+    if (!adminClinicaForm.nombre.trim() || !adminClinicaForm.apellido.trim() ||
+        !adminClinicaForm.email.trim() || !adminClinicaForm.clinicaNombre.trim()) {
+      alert('Por favor complete todos los campos')
+      return
+    }
+
+    setCreatingAdminClinica(true)
+    try {
+      // Convert clinic name to dominioSubdominio (lowercase, no spaces)
+      const dominioSubdominio = adminClinicaForm.clinicaNombre.toLowerCase().replace(/\s+/g, '')
+
+      // Get admin name from userInfo (nombre + apellido or email as fallback)
+      const creadorNombre = userInfo?.name || userInfo?.givenName ||
+                           (userInfo?.email ? userInfo.email.split('@')[0] : 'Admin HCEN')
+
+      const nuevoAdmin = await backendAPI.crearAdministradorDeClinica({
+        dominioSubdominio,
+        administrador: {
+          nombre: adminClinicaForm.nombre,
+          apellido: adminClinicaForm.apellido,
+          email: adminClinicaForm.email,
+          usuario: null,
+          creadorPor: creadorNombre,
+        },
+      })
+
+      setAdministradoresClinica([...administradoresClinica, nuevoAdmin])
+      setAdminClinicaForm({
+        nombre: "",
+        apellido: "",
+        email: "",
+        clinicaNombre: "",
+      })
+      setShowAdminClinicaDialog(false)
+    } catch (error) {
+      console.error('Error creating admin clinica:', error)
+      alert('Error al crear el administrador de clínica')
+    } finally {
+      setCreatingAdminClinica(false)
     }
   }
 
@@ -280,10 +350,11 @@ export default function AdminHCENPortal() {
 
       <div className="container mx-auto px-6 py-8">
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="clinicas">Clínicas</TabsTrigger>
             <TabsTrigger value="especialidades">Especialidades</TabsTrigger>
             <TabsTrigger value="administradores">Administradores</TabsTrigger>
+            <TabsTrigger value="admins-clinica">Admins Clínica</TabsTrigger>
             <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
             <TabsTrigger value="profesionales">Profesionales</TabsTrigger>
             <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
@@ -316,14 +387,21 @@ export default function AdminHCENPortal() {
                 clinicas.map((clinica) => (
                   <Card key={clinica.id}>
                     <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Hospital className="w-5 h-5" />
-                        <span>{clinica.nombre}</span>
-                      </CardTitle>
-                      <CardDescription>{clinica.tipoInstitucion}</CardDescription>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Hospital className="w-5 h-5" />
+                            <span>{clinica.nombre}</span>
+                          </CardTitle>
+                          <CardDescription>{clinica.tipoInstitucion}</CardDescription>
+                        </div>
+                        <Badge className={clinica.estado === 'ACTIVO' || clinica.estado === 'HABILITADO' || !clinica.estado ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>
+                          {clinica.estado || 'ACTIVO'}
+                        </Badge>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-3 text-sm">
                         {clinica.direccion && (
                           <p className="text-muted-foreground">
                             <strong>Dirección:</strong> {clinica.direccion}
@@ -334,9 +412,14 @@ export default function AdminHCENPortal() {
                             <strong>Teléfono:</strong> {clinica.telefono}
                           </p>
                         )}
-                        <Badge className="mt-2 bg-green-100 text-green-800 border-green-200">
-                          Activo
-                        </Badge>
+                        <Button
+                          variant={(clinica.estado === 'ACTIVO' || clinica.estado === 'HABILITADO' || !clinica.estado) ? "outline" : "default"}
+                          size="sm"
+                          onClick={() => handleToggleClinicaStatus(clinica)}
+                          className="w-full"
+                        >
+                          {(clinica.estado === 'ACTIVO' || clinica.estado === 'HABILITADO' || !clinica.estado) ? 'Deshabilitar Clínica' : 'Habilitar Clínica'}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -582,6 +665,133 @@ export default function AdminHCENPortal() {
             </div>
           </TabsContent>
 
+          {/* Administradores de Clínica Tab */}
+          <TabsContent value="admins-clinica" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">Administradores de Clínica</h2>
+                <p className="text-muted-foreground">Gestión de administradores de centros de salud periféricos</p>
+              </div>
+              <Dialog open={showAdminClinicaDialog} onOpenChange={setShowAdminClinicaDialog}>
+                <DialogTrigger asChild>
+                  <Button size="lg">
+                    <Plus className="w-5 h-5 mr-2" />
+                    Nuevo Admin Clínica
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Crear Administrador de Clínica</DialogTitle>
+                    <DialogDescription>
+                      Agrega un nuevo administrador para un centro de salud periférico
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nombre-clinica">Nombre *</Label>
+                        <Input
+                          id="nombre-clinica"
+                          placeholder="Juan"
+                          value={adminClinicaForm.nombre}
+                          onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, nombre: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="apellido-clinica">Apellido *</Label>
+                        <Input
+                          id="apellido-clinica"
+                          placeholder="Pérez"
+                          value={adminClinicaForm.apellido}
+                          onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, apellido: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email-clinica">Email *</Label>
+                      <Input
+                        id="email-clinica"
+                        type="email"
+                        placeholder="admin@clinica.com"
+                        value={adminClinicaForm.email}
+                        onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="clinica-nombre">Nombre de Clínica *</Label>
+                      <Input
+                        id="clinica-nombre"
+                        placeholder="Ej: Clinica Central"
+                        value={adminClinicaForm.clinicaNombre}
+                        onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, clinicaNombre: e.target.value })}
+                      />
+
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAdminClinicaDialog(false)}
+                      disabled={creatingAdminClinica}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleCrearAdminClinica}
+                      disabled={creatingAdminClinica}
+                    >
+                      {creatingAdminClinica ? "Creando..." : "Crear"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {administradoresClinica.length === 0 ? (
+                <Card className="col-span-full">
+                  <CardContent className="p-12 text-center">
+                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No hay administradores de clínica registrados</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                administradoresClinica.map((admin) => (
+                  <Card key={admin.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Hospital className="w-5 h-5" />
+                            <span>{admin.nombre} {admin.apellido}</span>
+                          </CardTitle>
+                          <CardDescription className="mt-1">{admin.clinica}</CardDescription>
+                        </div>
+                        <Badge className={admin.activo ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>
+                          {admin.activo ? 'Activo' : 'Inactivo'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-muted-foreground">
+                          <strong>Email:</strong> {admin.email}
+                        </p>
+
+                        {admin.cedula && (
+                          <p className="text-muted-foreground">
+                            <strong>Cédula:</strong> {admin.cedula}
+                          </p>
+                        )}
+
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
           {/* Usuarios Tab */}
           <TabsContent value="usuarios" className="space-y-6">
             <div>
@@ -650,8 +860,8 @@ export default function AdminHCENPortal() {
                             <Users className="w-5 h-5" />
                             <span>{prof.nombres} {prof.apellidos}</span>
                           </CardTitle>
-                          {prof.numeroRegistro && (
-                            <CardDescription className="mt-1">Reg: {prof.numeroRegistro}</CardDescription>
+                          {prof.centroDeSalud?.nombre && (
+                            <CardDescription className="mt-1">Clínica: {prof.centroDeSalud.nombre}</CardDescription>
                           )}
                         </div>
                         <Badge className={prof.estado === 'ACTIVO' ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}>
@@ -691,7 +901,7 @@ export default function AdminHCENPortal() {
               <p className="text-muted-foreground">Resumen general del sistema HCEN</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -729,6 +939,20 @@ export default function AdminHCENPortal() {
                     </div>
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                       <Shield className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Admins Clínica</p>
+                      <p className="text-2xl font-bold text-foreground">{administradoresClinica.filter(a => a.activo).length}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <Hospital className="w-6 h-6 text-cyan-600" />
                     </div>
                   </div>
                 </CardContent>
