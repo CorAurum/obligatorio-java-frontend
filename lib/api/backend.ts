@@ -460,6 +460,24 @@ class BackendAPI {
 
     return response.json();
   }
+
+  /**
+   * Generate autodiagnostico from symptoms
+   */
+  async autodiagnostico(sintomas: string[], token?: string): Promise<{ diagnostico: string }> {
+    const response = await fetch(`${this.baseURL}/api/autodiagnostico`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ sintomas }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Error autodiagnóstico: ${error}`);
+    }
+
+    return response.json();
+  }
 }
 
 export const backendAPI = new BackendAPI();

@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {
   Activity,
   FileText,
@@ -19,6 +21,9 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  Sparkles,
+  Check,
+  X,
 } from "lucide-react"
 import { backendAPI, DocumentoClinicoDTO, PoliticaDeAccesoDTO } from '@/lib/api/backend';
 
@@ -37,6 +42,11 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
   const [error, setError] = useState<string | null>(null);
   const [revocando, setRevocando] = useState<string | null>(null);
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const [autodiagOpen, setAutodiagOpen] = useState(false);
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+  const [autodiagResult, setAutodiagResult] = useState<string | null>(null);
+  const [autodiagError, setAutodiagError] = useState<string | null>(null);
+  const [autodiagLoading, setAutodiagLoading] = useState(false);
 
   // Debug: log the userInfo to see what we have
   console.log('UsuarioSaludContent userInfo:', userInfo);
@@ -148,6 +158,58 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
     accesos: accesos.length,
   }
 
+  const symptomOptions = [
+    "Dolor de cabeza",
+    "Fiebre",
+    "Tos persistente",
+    "Dolor abdominal",
+    "Náuseas",
+    "Mareos",
+    "Fatiga",
+    "Dificultad para respirar",
+    "Dolor de garganta",
+    "Congestión nasal",
+    "Dolor muscular",
+    "Pérdida de apetito",
+    "Sudoración nocturna",
+    "Erupción cutánea",
+    "Dolor en el pecho",
+  ];
+
+  const toggleSymptom = (symptom: string) => {
+    setSelectedSymptoms((prev) =>
+      prev.includes(symptom) ? prev.filter((s) => s !== symptom) : [...prev, symptom]
+    );
+  };
+
+  const handleAutodiagnostico = async () => {
+    if (selectedSymptoms.length === 0) {
+      setAutodiagError("Seleccione al menos un síntoma");
+      return;
+    }
+    try {
+      setAutodiagLoading(true);
+      setAutodiagError(null);
+      setAutodiagResult(null);
+      const response = await fetch('/api/user/autodiagnostico', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sintomas: selectedSymptoms }),
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Error generando autodiagnóstico');
+      }
+      const data = await response.json();
+      setAutodiagResult(data.diagnostico || 'Sin resultado');
+    } catch (err) {
+      console.error('Autodiagnostico error:', err);
+      setAutodiagError('No se pudo generar el autodiagnóstico. Intente nuevamente.');
+    } finally {
+      setAutodiagLoading(false);
+    }
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -204,6 +266,90 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                 <User className="w-3 h-3 mr-1" />
                 CI: {cedula || 'No disponible'}
               </Badge>
+              <Dialog open={autodiagOpen} onOpenChange={setAutodiagOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Autodiagnóstico</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Autodiagnóstico rápido</DialogTitle>
+                    <DialogDescription>
+                      Seleccione uno o más síntomas y generaremos un diagnóstico rápido usando IA.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Command className="rounded-lg border">
+                      <CommandInput placeholder="Buscar síntomas..." />
+                      <CommandList>
+                        <CommandEmpty>Sin coincidencias.</CommandEmpty>
+                        <CommandGroup heading="Síntomas">
+                          {symptomOptions.map((symptom) => {
+                            const selected = selectedSymptoms.includes(symptom);
+                            return (
+                              <CommandItem
+                                key={symptom}
+                                onSelect={() => toggleSymptom(symptom)}
+                                className="cursor-pointer"
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${selected ? 'opacity-100' : 'opacity-0'}`} />
+                                {symptom}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+
+                    <div className="flex flex-wrap gap-2">
+                      {selectedSymptoms.map((symptom) => (
+                        <Badge key={symptom} variant="secondary" className="flex items-center gap-1">
+                          {symptom}
+                          <button
+                            type="button"
+                            onClick={() => toggleSymptom(symptom)}
+                            className="rounded-full hover:bg-gray-200 p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                      {selectedSymptoms.length === 0 && (
+                        <span className="text-sm text-gray-500">No hay síntomas seleccionados.</span>
+                      )}
+                    </div>
+
+                    {autodiagError && (
+                      <p className="text-sm text-red-600">{autodiagError}</p>
+                    )}
+
+                    {autodiagResult && (
+                      <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-800">
+                        {autodiagResult}
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setAutodiagOpen(false);
+                        setAutodiagResult(null);
+                        setAutodiagError(null);
+                      }}
+                    >
+                      Cerrar
+                    </Button>
+                    <Button type="button" onClick={handleAutodiagnostico} disabled={autodiagLoading}>
+                      {autodiagLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Generar
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
               <form action="/api/auth/logout" method="POST">
                 <button
