@@ -232,6 +232,16 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
     "Sudoración nocturna",
     "Erupción cutánea",
     "Dolor en el pecho",
+    // ITS / ETS
+    "Flujo vaginal anormal",
+    "Secreción uretral",
+    "Dolor o ardor al orinar",
+    "Llagas o úlceras genitales",
+    "Verrugas genitales",
+    "Picazón o irritación genital",
+    "Sangrado intermenstrual",
+    "Dolor pélvico",
+    "Dolor testicular",
   ];
 
   const toggleSymptom = (symptom: string) => {
@@ -324,7 +334,18 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                 <User className="w-3 h-3 mr-1" />
                 CI: {cedula || 'No disponible'}
               </Badge>
-              <Dialog open={autodiagOpen} onOpenChange={setAutodiagOpen}>
+              <Dialog
+                open={autodiagOpen}
+                onOpenChange={(open) => {
+                  setAutodiagOpen(open);
+                  if (!open) {
+                    setSelectedSymptoms([]);
+                    setAutodiagResult(null);
+                    setAutodiagError(null);
+                    setAutodiagLoading(false);
+                  }
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="flex items-center space-x-2">
                     <Sparkles className="w-4 h-4" />
@@ -360,24 +381,6 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                         </CommandGroup>
                       </CommandList>
                     </Command>
-
-                    <div className="flex flex-wrap gap-2">
-                      {selectedSymptoms.map((symptom) => (
-                        <Badge key={symptom} variant="secondary" className="flex items-center gap-1">
-                          {symptom}
-                          <button
-                            type="button"
-                            onClick={() => toggleSymptom(symptom)}
-                            className="rounded-full hover:bg-gray-200 p-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                      {selectedSymptoms.length === 0 && (
-                        <span className="text-sm text-gray-500">No hay síntomas seleccionados.</span>
-                      )}
-                    </div>
 
                     {autodiagError && (
                       <p className="text-sm text-red-600">{autodiagError}</p>
@@ -696,16 +699,16 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                       <div
                         key={index}
                         className={`p-4 border rounded-lg ${log.resultado
-                            ? 'bg-green-50 border-green-200'
-                            : 'bg-red-50 border-red-200'
+                          ? 'bg-green-50 border-green-200'
+                          : 'bg-red-50 border-red-200'
                           }`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex items-center space-x-4 flex-1">
                             <div
                               className={`w-10 h-10 rounded-lg flex items-center justify-center ${log.resultado
-                                  ? 'bg-green-100'
-                                  : 'bg-red-100'
+                                ? 'bg-green-100'
+                                : 'bg-red-100'
                                 }`}
                             >
                               {log.resultado ? (
