@@ -22,6 +22,7 @@ interface SessionData {
   isLoggedIn?: boolean;
 }
 
+// POST /api/user/autodiagnostico
 export async function POST(request: NextRequest) {
   const session = await getIronSession<SessionData>(await cookies(), {
     password: process.env.SESSION_SECRET || 'a4b23d96f8d3e44f8f40d61c12b5a9d057e0dba5cf871e2fd41f6b033a1c8b67',
@@ -33,9 +34,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
     if (!apiKey) {
-      console.error('OPENAI_API_KEY is not configured');
+      console.error('NEXT_PUBLIC_OPENAI_API_KEY is not configured');
       return NextResponse.json(
         { error: 'No está configurada la API Key para autodiagnóstico' },
         { status: 500 }
@@ -48,8 +49,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Debe enviar al menos un síntoma' }, { status: 400 });
     }
 
+
     const openai = new OpenAI({ apiKey });
-    const model = process.env.OPENAI_AUTODIAG_MODEL || 'gpt-4o-mini';
+    const model = 'gpt-5-nano';
     const completion = await openai.chat.completions.create({
       model,
       reasoning_effort: "low",
