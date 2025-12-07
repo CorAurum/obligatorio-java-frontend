@@ -67,7 +67,6 @@ export default function AdminHCENPortal() {
     nombre: "",
     apellido: "",
     email: "",
-    usuario: "",
     clinicaNombre: "",
   })
 
@@ -253,8 +252,7 @@ export default function AdminHCENPortal() {
 
   const handleCrearAdminClinica = async () => {
     if (!adminClinicaForm.nombre.trim() || !adminClinicaForm.apellido.trim() ||
-        !adminClinicaForm.email.trim() || !adminClinicaForm.usuario.trim() ||
-        !adminClinicaForm.clinicaNombre.trim()) {
+        !adminClinicaForm.email.trim() || !adminClinicaForm.clinicaNombre.trim()) {
       alert('Por favor complete todos los campos')
       return
     }
@@ -264,14 +262,18 @@ export default function AdminHCENPortal() {
       // Convert clinic name to dominioSubdominio (lowercase, no spaces)
       const dominioSubdominio = adminClinicaForm.clinicaNombre.toLowerCase().replace(/\s+/g, '')
 
+      // Get admin name from userInfo (nombre + apellido or email as fallback)
+      const creadorNombre = userInfo?.name || userInfo?.givenName ||
+                           (userInfo?.email ? userInfo.email.split('@')[0] : 'Admin HCEN')
+
       const nuevoAdmin = await backendAPI.crearAdministradorDeClinica({
         dominioSubdominio,
         administrador: {
           nombre: adminClinicaForm.nombre,
           apellido: adminClinicaForm.apellido,
           email: adminClinicaForm.email,
-          usuario: adminClinicaForm.usuario,
-          creadorPor: 'system',
+          usuario: null,
+          creadorPor: creadorNombre,
         },
       })
 
@@ -280,7 +282,6 @@ export default function AdminHCENPortal() {
         nombre: "",
         apellido: "",
         email: "",
-        usuario: "",
         clinicaNombre: "",
       })
       setShowAdminClinicaDialog(false)
@@ -717,15 +718,6 @@ export default function AdminHCENPortal() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="usuario-clinica">Usuario *</Label>
-                      <Input
-                        id="usuario-clinica"
-                        placeholder="admin_usuario"
-                        value={adminClinicaForm.usuario}
-                        onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, usuario: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="clinica-nombre">Nombre de Clínica *</Label>
                       <Input
                         id="clinica-nombre"
@@ -733,9 +725,7 @@ export default function AdminHCENPortal() {
                         value={adminClinicaForm.clinicaNombre}
                         onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, clinicaNombre: e.target.value })}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        El dominio/subdominio se generará automáticamente (minúsculas sin espacios)
-                      </p>
+
                     </div>
                   </div>
                   <DialogFooter>
