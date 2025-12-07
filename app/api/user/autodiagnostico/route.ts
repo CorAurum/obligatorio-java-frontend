@@ -1,26 +1,5 @@
 import OpenAI from 'openai';
-import { getIronSession } from 'iron-session';
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-
-interface SessionData {
-  user?: {
-    id_token: string;
-    access_token: string;
-    token_type: string;
-    expires_in: number;
-  };
-  userInfo?: {
-    id: string;
-    numeroDocumento?: string;
-    email?: string;
-    name?: string;
-    givenName?: string;
-    familyName?: string;
-    preferredUsername?: string;
-  };
-  isLoggedIn?: boolean;
-}
 
 // POST /api/user/autodiagnostico
 export async function POST(request: NextRequest) {
@@ -34,9 +13,9 @@ export async function POST(request: NextRequest) {
   // }
 
   try {
-    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      console.error('NEXT_PUBLIC_OPENAI_API_KEY is not configured');
+      console.error('OPENAI_API_KEY is not configured');
       return NextResponse.json(
         { error: 'No está configurada la API Key para autodiagnóstico' },
         { status: 500 }
@@ -51,22 +30,20 @@ export async function POST(request: NextRequest) {
 
 
     const openai = new OpenAI({ apiKey });
-    const model = 'gpt-5-nano';
     const completion = await openai.chat.completions.create({
-      model,
-      reasoning_effort: "low",
-      max_tokens: 180,
+      model: "gpt-5-nano",
       messages: [
         {
           role: 'system',
           content:
-            'Eres un médico que entrega un diagnóstico breve y probable en español. Devuelve solo el diagnóstico sin saludos ni despedidas.',
+            'Eres un médico que entrega un diagnóstico breve y probable en español. Devuelve solo el diagnóstico sin saludos ni despedidas, proporciona por lo menos un posible motivo/diagnóstico.',
         },
         {
           role: 'user',
           content: `Síntomas reportados: ${sintomas.join(', ')}`,
         },
       ],
+      reasoning_effort: "low",
     });
 
     const diagnostico =
@@ -76,8 +53,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ diagnostico });
   } catch (error) {
     console.error('Error generando autodiagnostico:', error);
+
+    let errorMessage = 'Error generando autodiagnóstico';
+    if (error instanceof Error) {
+      errorMessage = error.message || errorMessage;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (typeof error === 'object' && error && 'message' in error) {
+      errorMessage = String((error as any).message) || errorMessage;
+    }
+
     return NextResponse.json(
-      { error: 'Error generando autodiagnóstico' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

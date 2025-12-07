@@ -265,14 +265,34 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
         body: JSON.stringify({ sintomas: selectedSymptoms }),
       });
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Error generando autodiagnóstico');
+        const rawText = await response.text();
+        let errorMessage = 'Error generando autodiagnóstico';
+
+        try {
+          const parsed = JSON.parse(rawText);
+          errorMessage = parsed?.error || errorMessage;
+        } catch {
+          if (rawText) {
+            errorMessage = rawText;
+          }
+        }
+
+        console.error('Autodiagnostico error response:', {
+          status: response.status,
+          body: rawText,
+        });
+
+        throw new Error(errorMessage);
       }
       const data = await response.json();
       setAutodiagResult(data.diagnostico || 'Sin resultado');
     } catch (err) {
       console.error('Autodiagnostico error:', err);
-      setAutodiagError('No se pudo generar el autodiagnóstico. Intente nuevamente.');
+      if (err instanceof Error) {
+        setAutodiagError(err.message);
+      } else {
+        setAutodiagError('No se pudo generar el autodiagnóstico. Intente nuevamente.');
+      }
     } finally {
       setAutodiagLoading(false);
     }
@@ -359,38 +379,54 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                       Seleccione uno o más síntomas y generaremos un diagnóstico rápido usando IA.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4">
-                    <Command className="rounded-lg border">
-                      <CommandInput placeholder="Buscar síntomas..." />
-                      <CommandList>
-                        <CommandEmpty>Sin coincidencias.</CommandEmpty>
-                        <CommandGroup heading="Síntomas">
-                          {symptomOptions.map((symptom) => {
-                            const selected = selectedSymptoms.includes(symptom);
-                            return (
-                              <CommandItem
-                                key={symptom}
-                                onSelect={() => toggleSymptom(symptom)}
-                                className="cursor-pointer"
-                              >
-                                <Check className={`mr-2 h-4 w-4 ${selected ? 'opacity-100' : 'opacity-0'}`} />
-                                {symptom}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
+                  <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
+                    <div className="space-y-3">
+                      <Command className="rounded-lg border">
+                        <CommandInput placeholder="Buscar síntomas..." />
+                        <CommandList>
+                          <CommandEmpty>Sin coincidencias.</CommandEmpty>
+                          <CommandGroup heading="Síntomas">
+                            {symptomOptions.map((symptom) => {
+                              const selected = selectedSymptoms.includes(symptom);
+                              return (
+                                <CommandItem
+                                  key={symptom}
+                                  onSelect={() => toggleSymptom(symptom)}
+                                  className="cursor-pointer"
+                                >
+                                  <Check className={`mr-2 h-4 w-4 ${selected ? 'opacity-100' : 'opacity-0'}`} />
+                                  {symptom}
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                      <p className="text-xs text-gray-500">Seleccione uno o más síntomas.</p>
+                    </div>
 
-                    {autodiagError && (
-                      <p className="text-sm text-red-600">{autodiagError}</p>
-                    )}
-
-                    {autodiagResult && (
-                      <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-800">
-                        {autodiagResult}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-700">Resultado del autodiagnóstico</p>
+                      <div className="rounded-lg border bg-gray-50 p-3 min-h-[140px]">
+                        {autodiagLoading && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Generando diagnóstico...
+                          </div>
+                        )}
+                        {!autodiagLoading && autodiagError && (
+                          <p className="text-sm text-red-600 whitespace-pre-wrap">{autodiagError}</p>
+                        )}
+                        {!autodiagLoading && !autodiagError && autodiagResult && (
+                          <div className="text-sm text-gray-800 whitespace-pre-wrap">
+                            {autodiagResult}
+                          </div>
+                        )}
+                        {!autodiagLoading && !autodiagError && !autodiagResult && (
+                          <p className="text-sm text-gray-500">Aquí verás el resultado de la IA.</p>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                   <DialogFooter className="flex justify-end gap-2">
                     <Button
@@ -406,7 +442,7 @@ export default function UsuarioSaludContent({ userInfo }: { userInfo: any }) {
                     </Button>
                     <Button type="button" onClick={handleAutodiagnostico} disabled={autodiagLoading}>
                       {autodiagLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                      Generar
+                      {autodiagLoading ? 'Generando' : 'Generar'}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

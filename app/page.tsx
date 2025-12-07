@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +15,7 @@ import {
 function DashboardContent() {
   const [selectedPortal, setSelectedPortal] = useState<string | null>(null)
   const searchParams = useSearchParams()
-  const router = useRouter()
+  const perifericoBaseUrl = process.env.NEXT_PUBLIC_API_PERIFERICO_BASE_URL || "https://nodosperifericos.vercel.app/"
   // Handle error parameters from failed authentication
   const error = searchParams.get('error')
 
@@ -92,7 +92,7 @@ function DashboardContent() {
         "Conexión como nodo periférico",
       ],
       userType: "Administrador Clínica",
-      route: "/admin-clinica",
+      route: perifericoBaseUrl,
     },
     {
       id: "profesionales-salud",
@@ -107,7 +107,7 @@ function DashboardContent() {
         "Consulta de información externa",
       ],
       userType: "Profesional de Salud",
-      route: "/api/auth/login?portal=profesional",
+      route: perifericoBaseUrl,
     },
   ]
 
@@ -179,7 +179,7 @@ function DashboardContent() {
                         <div className="mt-4">
                           <a href={portal.route}>
                             <Button className="w-full" size="sm">
-                              Acceder con gub.uy
+                              Acceder {portal.id === "admin-hcen" || portal.id === "usuarios-salud" ? "con gub.uy" : "a los nodos periféricos"}
                             </Button>
                           </a>
                         </div>

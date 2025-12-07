@@ -35,7 +35,7 @@ export async function POST() {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
-  // Clear session and redirect
+  // Clear session and redirect with a GET (avoid 307 POST replay)
   session.destroy();
-  return NextResponse.redirect(new URL('/', baseUrl));
+  return NextResponse.redirect(new URL('/', baseUrl), 303);
 }
