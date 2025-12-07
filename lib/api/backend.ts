@@ -203,12 +203,12 @@ class BackendAPI {
       throw new Error(`No se encontró usuario con cédula ${cedula}`);
     }
 
-    // Return the first Usuario ID found
+    // Return the first Usuario IaD found
     return usuarioIds[0];
   }
 
   /**
-   * Get user's clinical documents
+   * Get user's clinical do2dasdacuments
    */
   async getDocumentosClinicos(usuarioId: string, token?: string): Promise<DocumentoClinicoDTO[]> {
     const response = await fetch(`${this.baseURL}/api/documentoClinico/usuarioDTO/${usuarioId}`, {
