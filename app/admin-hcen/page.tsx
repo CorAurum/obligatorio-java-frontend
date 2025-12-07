@@ -785,9 +785,7 @@ export default function AdminHCENPortal() {
                             <strong>Cédula:</strong> {admin.cedula}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Creado por: {admin.creadorPor}
-                        </p>
+
                       </div>
                     </CardContent>
                   </Card>
