@@ -67,6 +67,7 @@ export default function AdminHCENPortal() {
     nombre: "",
     apellido: "",
     email: "",
+    password: "",
     clinicaNombre: "",
   })
 
@@ -252,7 +253,8 @@ export default function AdminHCENPortal() {
 
   const handleCrearAdminClinica = async () => {
     if (!adminClinicaForm.nombre.trim() || !adminClinicaForm.apellido.trim() ||
-        !adminClinicaForm.email.trim() || !adminClinicaForm.clinicaNombre.trim()) {
+      !adminClinicaForm.email.trim() || !adminClinicaForm.password.trim() ||
+      !adminClinicaForm.clinicaNombre.trim()) {
       alert('Por favor complete todos los campos')
       return
     }
@@ -264,7 +266,7 @@ export default function AdminHCENPortal() {
 
       // Get admin name from userInfo (nombre + apellido or email as fallback)
       const creadorNombre = userInfo?.name || userInfo?.givenName ||
-                           (userInfo?.email ? userInfo.email.split('@')[0] : 'Admin HCEN')
+        (userInfo?.email ? userInfo.email.split('@')[0] : 'Admin HCEN')
 
       const nuevoAdmin = await backendAPI.crearAdministradorDeClinica({
         dominioSubdominio,
@@ -275,6 +277,7 @@ export default function AdminHCENPortal() {
           usuario: null,
           creadorPor: creadorNombre,
         },
+        password: adminClinicaForm.password,
       })
 
       setAdministradoresClinica([...administradoresClinica, nuevoAdmin])
@@ -282,6 +285,7 @@ export default function AdminHCENPortal() {
         nombre: "",
         apellido: "",
         email: "",
+        password: "",
         clinicaNombre: "",
       })
       setShowAdminClinicaDialog(false)
@@ -715,6 +719,16 @@ export default function AdminHCENPortal() {
                         placeholder="admin@clinica.com"
                         value={adminClinicaForm.email}
                         onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password-clinica">Contraseña *</Label>
+                      <Input
+                        id="password-clinica"
+                        type="password"
+                        placeholder="Mínimo 8 caracteres"
+                        value={adminClinicaForm.password}
+                        onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, password: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">

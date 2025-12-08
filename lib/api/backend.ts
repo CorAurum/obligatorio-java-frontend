@@ -87,6 +87,7 @@ export interface CrearAdministradorClinicaRequest {
     usuario: string | null;
     creadorPor: string;
   };
+  password: string;
 }
 
 export interface CentroDeSalud {
