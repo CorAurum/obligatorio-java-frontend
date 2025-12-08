@@ -71,6 +71,15 @@ export default function AdminHCENPortal() {
     clinicaNombre: "",
   })
 
+  const passwordMeetsPolicy = (pwd: string) => {
+    return (
+      pwd.length >= 8 &&
+      /[A-Z]/.test(pwd) &&
+      /[a-z]/.test(pwd) &&
+      /\d/.test(pwd)
+    )
+  }
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -256,6 +265,11 @@ export default function AdminHCENPortal() {
       !adminClinicaForm.email.trim() || !adminClinicaForm.password.trim() ||
       !adminClinicaForm.clinicaNombre.trim()) {
       alert('Por favor complete todos los campos')
+      return
+    }
+
+    if (!passwordMeetsPolicy(adminClinicaForm.password)) {
+      alert('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un dígito')
       return
     }
 
@@ -727,9 +741,13 @@ export default function AdminHCENPortal() {
                         id="password-clinica"
                         type="password"
                         placeholder="Mínimo 8 caracteres"
+                        minLength={8}
                         value={adminClinicaForm.password}
                         onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, password: e.target.value })}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Debe tener al menos 8 caracteres, una mayúscula, una minúscula y un dígito.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="clinica-nombre">Nombre de Clínica *</Label>
