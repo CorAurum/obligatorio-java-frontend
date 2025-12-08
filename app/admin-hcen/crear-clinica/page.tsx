@@ -46,7 +46,11 @@ export default function CrearClinicaPage() {
       const userInfo = await userResponse.json()
       console.log('UserInfo:', userInfo) // Debug log
 
-      const cedula = userInfo?.numero_documento || userInfo?.cedula || userInfo?.ci
+      const cedula =
+        userInfo?.numero_documento || // snake_case (if ever sent)
+        userInfo?.numeroDocumento || // camelCase from backend userInfo
+        userInfo?.cedula ||
+        userInfo?.ci
 
       if (!cedula) {
         console.error('UserInfo completo:', JSON.stringify(userInfo, null, 2))
