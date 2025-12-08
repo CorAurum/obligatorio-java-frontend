@@ -83,6 +83,7 @@ export interface CrearAdministradorClinicaRequest {
   administrador: {
     nombre: string;
     apellido: string;
+    cedula: string;
     email: string;
     usuario: string | null;
     creadorPor: string;

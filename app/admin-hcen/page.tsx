@@ -66,6 +66,7 @@ export default function AdminHCENPortal() {
   const [adminClinicaForm, setAdminClinicaForm] = useState({
     nombre: "",
     apellido: "",
+    cedula: "",
     email: "",
     password: "",
     clinicaNombre: "",
@@ -262,8 +263,8 @@ export default function AdminHCENPortal() {
 
   const handleCrearAdminClinica = async () => {
     if (!adminClinicaForm.nombre.trim() || !adminClinicaForm.apellido.trim() ||
-      !adminClinicaForm.email.trim() || !adminClinicaForm.password.trim() ||
-      !adminClinicaForm.clinicaNombre.trim()) {
+      !adminClinicaForm.cedula.trim() || !adminClinicaForm.email.trim() ||
+      !adminClinicaForm.password.trim() || !adminClinicaForm.clinicaNombre.trim()) {
       alert('Por favor complete todos los campos')
       return
     }
@@ -287,6 +288,7 @@ export default function AdminHCENPortal() {
         administrador: {
           nombre: adminClinicaForm.nombre,
           apellido: adminClinicaForm.apellido,
+          cedula: adminClinicaForm.cedula,
           email: adminClinicaForm.email,
           usuario: null,
           creadorPor: creadorNombre,
@@ -298,6 +300,7 @@ export default function AdminHCENPortal() {
       setAdminClinicaForm({
         nombre: "",
         apellido: "",
+        cedula: "",
         email: "",
         password: "",
         clinicaNombre: "",
@@ -724,6 +727,15 @@ export default function AdminHCENPortal() {
                           onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, apellido: e.target.value })}
                         />
                       </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cedula-clinica">Cédula *</Label>
+                      <Input
+                        id="cedula-clinica"
+                        placeholder="Sin puntos ni guiones"
+                        value={adminClinicaForm.cedula}
+                        onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, cedula: e.target.value })}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email-clinica">Email *</Label>
