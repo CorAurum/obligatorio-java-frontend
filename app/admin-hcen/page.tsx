@@ -68,18 +68,9 @@ export default function AdminHCENPortal() {
     apellido: "",
     cedula: "",
     email: "",
-    password: "",
     clinicaNombre: "",
   })
 
-  const passwordMeetsPolicy = (pwd: string) => {
-    return (
-      pwd.length >= 8 &&
-      /[A-Z]/.test(pwd) &&
-      /[a-z]/.test(pwd) &&
-      /\d/.test(pwd)
-    )
-  }
 
   useEffect(() => {
     async function loadData() {
@@ -264,15 +255,11 @@ export default function AdminHCENPortal() {
   const handleCrearAdminClinica = async () => {
     if (!adminClinicaForm.nombre.trim() || !adminClinicaForm.apellido.trim() ||
       !adminClinicaForm.cedula.trim() || !adminClinicaForm.email.trim() ||
-      !adminClinicaForm.password.trim() || !adminClinicaForm.clinicaNombre.trim()) {
+      !adminClinicaForm.clinicaNombre.trim()) {
       alert('Por favor complete todos los campos')
       return
     }
 
-    if (!passwordMeetsPolicy(adminClinicaForm.password)) {
-      alert('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un dígito')
-      return
-    }
 
     setCreatingAdminClinica(true)
     try {
@@ -293,7 +280,7 @@ export default function AdminHCENPortal() {
           usuario: null,
           creadorPor: creadorNombre,
         },
-        password: adminClinicaForm.password,
+        password: "Password123",
       })
 
       setAdministradoresClinica([...administradoresClinica, nuevoAdmin])
@@ -302,7 +289,6 @@ export default function AdminHCENPortal() {
         apellido: "",
         cedula: "",
         email: "",
-        password: "",
         clinicaNombre: "",
       })
       setShowAdminClinicaDialog(false)
@@ -747,20 +733,7 @@ export default function AdminHCENPortal() {
                         onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, email: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password-clinica">Contraseña *</Label>
-                      <Input
-                        id="password-clinica"
-                        type="password"
-                        placeholder="Mínimo 8 caracteres"
-                        minLength={8}
-                        value={adminClinicaForm.password}
-                        onChange={(e) => setAdminClinicaForm({ ...adminClinicaForm, password: e.target.value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Debe tener al menos 8 caracteres, una mayúscula, una minúscula y un dígito.
-                      </p>
-                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="clinica-nombre">Nombre de Clínica *</Label>
                       <Input
